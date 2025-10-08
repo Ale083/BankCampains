@@ -1,6 +1,6 @@
 const { Schema, model } = require('mongoose');
 
-const datosSchema = new Schema(
+const contactSchema = new Schema(
   {
     age: { type: Number, min: 0 },
     job: {
@@ -69,13 +69,13 @@ const datosSchema = new Schema(
   },
 );
 
-datosSchema.index({ y: 1 });
-datosSchema.index({ contact: 1, y: 1 });
-datosSchema.index({ month: 1 });
-datosSchema.index({ job: 1 });
-datosSchema.index({ age: 1 });
-datosSchema.index({ duration: 1 });
-datosSchema.index({ campaign: 1 });
-datosSchema.index({ poutcome: 1 });
+contactSchema.index({ y: 1 });
+contactSchema.index({ contact: 1, y: 1 });
+contactSchema.index({ month: 1 });
+contactSchema.index({ job: 1 });
+contactSchema.index({ age: 1 });
+contactSchema.index({ duration: 1 });
+contactSchema.index({ campaign: 1 });
+contactSchema.index({ poutcome: 1 });
 
-module.exports = model('Datos', datosSchema);
+module.exports = model('Contact', contactSchema);
