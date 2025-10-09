@@ -129,6 +129,7 @@ router.get('/contacts-by-month', async (req, res) => {
   } catch { res.status(500).json({ error: 'Error en contactos por mes' }); }
 }); 
 
+
 //Duración promedio de llamadas
 // /kpis/avg-duration?y=yes&durationMax=300
 router.get('/avg-duration', async (req, res) => {
@@ -141,6 +142,7 @@ router.get('/avg-duration', async (req, res) => {
     res.json({ avgDuration: r?.avgDuration ?? 0, total: r?.total ?? 0 });
   } catch { res.status(500).json({ error: 'Error en duración promedio de llamadas' }); }
 }); 
+
 
 //Tasa de éxito por canal
 // /kpis/channel-success?education=university.degree,high.school
@@ -162,6 +164,105 @@ router.get('/channel-success', async (req, res) => {
     res.json(out);
   } catch { res.status(500).json({ error: 'Error en tasa de éxito por canal.' }); }
 }); 
+
+
+//Conversión por segmento de edad
+// /kpis/age-conversion?loan=no&housing=no
+router.get('/age-conversion', async (req, res) => {
+  try {
+    const match = buildMatch(req.query);
+    const out = await Contact.aggregate([
+      { $match: match },
+      { $group: {
+        _id: ageBucketExpr(),
+        total: { $sum: 1 },
+        yes: { $sum: { $cond: [{ $eq: ['$y','yes'] }, 1, 0] } }
+      }},
+      { $project: { _id: 0, segment: '$_id', total: 1, yes: 1,
+        conversionRate: { $cond: [{ $gt: ['$total',0] }, { $multiply: [{ $divide: ['$yes','$total'] }, 100] }, 0] }
+      }},
+      { $sort: { segment: 1 } }
+    ]);
+    res.json(out);
+  } catch { res.status(500).json({ error: 'Error en conversión por segmento de edad' }); }
+}); 
+
+
+//Impacto del historial previo
+// /kpis/poutcome-stacked?education=university.degree,high.school
+router.get('/poutcome-stacked', async (req, res) => {
+  try {
+    const match = buildMatch(req.query);
+    const out = await Contact.aggregate([
+      { $match: match },
+      { $group: {
+        _id: '$poutcome',
+        total: { $sum: 1 },
+        yes:   { $sum: { $cond: [{ $eq: ['$y','yes'] }, 1, 0] } }
+      }},
+      { $project: {
+        _id: 0,
+        poutcome: '$_id',
+        total: 1,
+        yes: 1,
+        no: { $subtract: ['$total', '$yes'] },
+        conversionRate: { $cond: [{ $gt: ['$total',0] }, { $multiply: [{ $divide: ['$yes','$total'] }, 100] }, 0] }
+      }},
+      { $sort: { poutcome: 1 } }
+    ]);
+    res.json(out);
+  } catch { res.status(500).json({ error: 'Error en impacto del historial previo' }); }
+});
+
+
+//Índice de eficiencia por campaña
+// /kpis/efficiency-lines?ageMin=30&ageMax=50&education=university.degree,high.school
+router.get('/efficiency-lines', async (req, res) => {
+  try {
+    const match = buildMatch(req.query);
+    const out = await Contact.aggregate([
+      { $match: match },
+      { $group: {
+        _id: '$campaign',
+        yes: { $sum: { $cond: [{ $eq: ['$y','yes'] }, 1, 0] } },
+        attempts: { $sum: '$campaign' }
+      }},
+      { $project: {
+        _id: 0,
+        campaignCount: '$_id',
+        efficiency: { $cond: [{ $gt: ['$attempts',0] }, { $divide: ['$yes','$attempts'] }, 0] }
+      }},
+      { $sort: { campaignCount: 1 } }
+    ]);
+    res.json(out);
+  } catch { res.status(500).json({ error: 'Error en índice de eficiencia por campaña' }); }
+});
+
+
+//Rentabilidad proyectada
+// /kpis/rentabilidad?G=1000&C=100&ageMin=30&ageMax=50&education=university.degree,high.school
+router.get('/rentabilidad', async (req, res) => {
+  try {
+    const G = Number(req.query.G);
+    const C = Number(req.query.C);
+    if (Number.isNaN(G) || Number.isNaN(C)) {
+      return res.status(400).json({ error: 'Falta de parámetros', message: 'Usa ?G=...&C=...' });
+    }
+    const match = buildMatch(req.query);
+    const [r] = await Contact.aggregate([
+      { $match: match },
+      { $group: { _id: null, total: { $sum: 1 }, yes: { $sum: { $cond: [{ $eq: ['$y','yes'] }, 1, 0] } } } }
+    ]);
+    const total = r?.total ?? 0, yes = r?.yes ?? 0;
+    res.json({
+      profit: yes * G - total * C,
+      accepted: yes,
+      total,
+      conversionRate: total ? (yes * 100) / total : 0,
+      G, C
+    });
+  } catch { res.status(500).json({ error: 'Error en rentabilidad proyectada' }); }
+});
 
 
 module.exports = router;
