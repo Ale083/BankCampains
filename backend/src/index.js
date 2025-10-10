@@ -3,13 +3,15 @@ const express = require('express');
 const mongoose = require('mongoose');
 const cors = require('cors');
 
-const routes = require('./routes');
+const kpiNum = require('./controller/kpis/kpiNum')
+const kpiTablas = require('./controller/kpis/kpiTablas')
 
 const app = express();
 app.use(cors());
 app.use(express.json({ limit: '10mb' }));
 
-app.use('/', routes);
+app.use('/kpis', kpiNum);
+app.use('/kpis', kpiTablas);
 
 async function start() {
   try {
