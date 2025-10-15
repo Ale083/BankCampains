@@ -10,7 +10,6 @@ export default function App() {
   return (
     <div>
 
-      {/* Definición de rutas */}
       <Routes>
         {/* Ruta de ejemplo */}
         {/* <Route path="/empleados" element={<EmployeeList />}*/}
