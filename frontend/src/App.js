@@ -1,25 +1,26 @@
-import logo from './logo.svg';
+import React from 'react';
+import { Routes, Route, Navigate, Link, useNavigate } from 'react-router-dom';
+import EmployeeList from './listaEmpleados/listaEmpleados';
+
 import './App.css';
 
-function App() {
+export default function App() {
+  const navigate = useNavigate();
+
   return (
-    <div className="App">
-      <header className="App-header">
-        <img src={logo} className="App-logo" alt="logo" />
-        <p>
-          Edit <code>src/App.js</code> and save to reload.
-        </p>
-        <a
-          className="App-link"
-          href="https://reactjs.org"
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          Learn React
-        </a>
-      </header>
+    <div>
+
+      {/* Definición de rutas */}
+      <Routes>
+        {/* Ruta de ejemplo */}
+        {/* <Route path="/empleados" element={<EmployeeList />}*/}
+
+        {/* Redirigir "/" a "/otro" */}
+        {/*<Route path="/" element={<Navigate to={"/otro"} replace />} />*/}
+
+        {/* Cualquier otra ruta, de nuevo a /otro */}
+        {/*<Route path="*" element={<Navigate to={"/otro"} replace />} />*/}
+      </Routes>
     </div>
   );
 }
-
-export default App;
