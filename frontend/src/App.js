@@ -1,6 +1,6 @@
 import React from 'react';
 import { Routes, Route, Navigate, Link, useNavigate } from 'react-router-dom';
-import EmployeeList from './listaEmpleados/listaEmpleados';
+//import EmployeeList from './listaEmpleados/listaEmpleados';
 
 import './App.css';
 
