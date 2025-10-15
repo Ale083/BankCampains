@@ -1,24 +1,23 @@
 import React from 'react';
 import { Routes, Route, Navigate, Link, useNavigate } from 'react-router-dom';
-//import EmployeeList from './listaEmpleados/listaEmpleados';
+import HelloWorld from './estoEsUnTest/estoEsUnTest';
 
 import './App.css';
 
 export default function App() {
-  const navigate = useNavigate();
 
   return (
     <div>
 
       <Routes>
         {/* Ruta de ejemplo */}
-        {/* <Route path="/empleados" element={<EmployeeList />}*/}
+        <Route path="/test" element={< HelloWorld />} />
 
-        {/* Redirigir "/" a "/otro" */}
-        {/*<Route path="/" element={<Navigate to={"/otro"} replace />} />*/}
+        {/* Redirigir "/" a "/test" */}
+        <Route path="/" element={<Navigate to={"/test"} replace />} />
 
-        {/* Cualquier otra ruta, de nuevo a /otro */}
-        {/*<Route path="*" element={<Navigate to={"/otro"} replace />} />*/}
+        {/* Cualquier otra ruta, de nuevo a /test */}
+        <Route path="*" element={<Navigate to={"/test"} replace />} />
       </Routes>
     </div>
   );
