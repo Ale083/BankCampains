@@ -1,1 +1,0 @@
-borrar este archivo cuando se trabaje en frontend, es solo para que salga la carpeta en el git.
