@@ -36,12 +36,23 @@ module.exports = function buildMatch(q = {}) {
   }
 
   for (const [field, [minK, maxK]] of Object.entries(ranges)) { //revisa para cada rango si tiene min o max en query.
-    const g = q[minK] !== undefined ? Number(q[minK]) : undefined
-    const l = q[maxK] !== undefined ? Number(q[maxK]) : undefined
-    if (!Number.isNaN(g) || !Number.isNaN(l)) {
-      m[field] = {}
-      if (!Number.isNaN(g)) m[field].$gte = g
-      if (!Number.isNaN(l)) m[field].$lte = l
+    const rawMin = q[minK];
+    const rawMax = q[maxK];
+
+    const hasMin = rawMin !== undefined && rawMin !== null && rawMin !== '';
+    const hasMax = rawMax !== undefined && rawMax !== null && rawMax !== '';
+
+    if (!hasMin && !hasMax) continue;
+  
+    const min = hasMin ? Number(rawMin) : undefined;
+    const max = hasMax ? Number(rawMax) : undefined;
+
+    const cond = {};
+    if (isNum(min)) cond.$gte = min;
+    if (isNum(max)) cond.$lte = max;
+
+    if (Object.keys(cond).length) {
+      m[field] = cond;
     }
   }
 
