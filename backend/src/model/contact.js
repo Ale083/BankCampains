@@ -1,81 +1,91 @@
-const { Schema, model } = require('mongoose');
+const mongoose = require('mongoose');
 
-const contactSchema = new Schema(
-  {
-    age: { type: Number, min: 0 },
-    job: {
-      type: String,
-      enum: [
-        'admin.',
-        'blue-collar',
-        'entrepreneur',
-        'housemaid',
-        'management',
-        'retired',
-        'self-employed',
-        'services',
-        'student',
-        'technician',
-        'unemployed',
-        'unknown',
-      ],
-      trim: true,
-    },
-    marital: {
-      type: String,
-      enum: ['divorced', 'married', 'single', 'unknown'],
-      trim: true,
-    },
-    education: {
-      type: String,
-      enum: [
-        'basic.4y',
-        'basic.6y',
-        'basic.9y',
-        'high.school',
-        'illiterate',
-        'professional.course',
-        'university.degree',
-        'unknown',
-      ],
-      trim: true,
-    },
-    default: { type: String, enum: ['yes', 'no', 'unknown'], trim: true },
-    housing: { type: String, enum: ['yes', 'no', 'unknown'], trim: true },
-    loan: { type: String, enum: ['yes', 'no', 'unknown'], trim: true },
-    contact: { type: String, enum: ['cellular', 'telephone'], trim: true },
-    month: {
-      type: String,
-      enum: ['jan', 'feb', 'mar', 'apr', 'may', 'jun', 'jul', 'aug', 'sep', 'oct', 'nov', 'dec'],
-      trim: true,
-    },
-    day_of_week: { type: String, enum: ['mon', 'tue', 'wed', 'thu', 'fri'], trim: true },
-    duration: { type: Number, min: 0 },
-    campaign: { type: Number, min: 0 },
-    pdays: { type: Number, min: 0 },
-    previous: { type: Number, min: 0 },
-    poutcome: { type: String, enum: ['failure', 'nonexistent', 'success'], trim: true },
-    emp_var_rate: { type: Number },
-    cons_price_idx: { type: Number },
-    cons_conf_idx: { type: Number },
-    euribor3m: { type: Number },
-    nr_employed: { type: Number },
-    y: { type: String, enum: ['yes', 'no'], trim: true },
+const contactSchema = new mongoose.Schema({
+  age: {
+    type: Number,
+    required: true
   },
-  {
-    versionKey: false,
-    timestamps: false,
-    strict: true,
+  job: {
+    type: String,
+    required: true
   },
-);
+  marital: {
+    type: String,
+    required: true
+  },
+  education: {
+    type: String,
+    required: true
+  },
+  default: {
+    type: String,
+    required: true
+  },
+  housing: {
+    type: String,
+    required: true
+  },
+  loan: {
+    type: String,
+    required: true
+  },
+  contact: {
+    type: String,
+    required: true
+  },
+  month: {
+    type: String,
+    required: true
+  },
+  day_of_week: {
+    type: String,
+    required: true
+  },
+  duration: {
+    type: Number,
+    required: true
+  },
+  campaign: {
+    type: Number,
+    required: true
+  },
+  pdays: {
+    type: Number,
+    required: true
+  },
+  previous: {
+    type: Number,
+    required: true
+  },
+  poutcome: {
+    type: String,
+    required: true
+  },
+  emp_var_rate: {
+    type: Number,
+    required: true
+  },
+  cons_price_idx: {
+    type: Number,
+    required: true
+  },
+  cons_conf_idx: {
+    type: Number,
+    required: true
+  },
+  euribor3m: {
+    type: Number,
+    required: true
+  },
+  nr_employed: {
+    type: Number,
+    required: true
+  },
+  y: {
+    type: String,
+    required: true
+  }
+});
 
-contactSchema.index({ y: 1 });
-contactSchema.index({ contact: 1, y: 1 });
-contactSchema.index({ month: 1 });
-contactSchema.index({ job: 1 });
-contactSchema.index({ age: 1 });
-contactSchema.index({ duration: 1 });
-contactSchema.index({ campaign: 1 });
-contactSchema.index({ poutcome: 1 });
-
-module.exports = model('Contact', contactSchema);
+const Contact = mongoose.model('Contact', contactSchema);
+module.exports = Contact;
