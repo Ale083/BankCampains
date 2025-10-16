@@ -15,7 +15,7 @@ app.use('/kpis', kpiTablas);
 
 async function start() {
   try {
-    await mongoose.connect(process.env.MONGO_URI, { dbName: 'bank_campaigns' });
+    await mongoose.connect(process.env.MONGO_URI);
     console.log('Conectado a la DB');
 
     const port = process.env.PORT || 4000;
