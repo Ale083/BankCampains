@@ -3,6 +3,7 @@ import React, { useEffect, useState } from "react";
 import "./styles.css";
 import { fetchKPIs, rentabilidad } from "./fetchKPIs";
 import { ChartBox, KPIBox } from "./componentesKPIs";
+import Header from "../components/Header";
 
 export default function Dashboard() {
   const [G, setG] = useState(200); //ganancia por conversion
@@ -37,15 +38,7 @@ export default function Dashboard() {
 
   return (
     <div className="page">
-      <header className="header">
-        <div className="user">A</div>
-        <h1 className="brand">BankCampains</h1>
-      </header>
-
-      <div className="bar">
-        <button className="back" aria-label="Volver">←</button>
-        <h2>Dashboard General</h2>
-      </div>
+      <Header title="Dashboard General" />
 
       <main className="wrap">
         {/* izquierda */}
