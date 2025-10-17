@@ -1,76 +1,44 @@
-import React from "react";
-import {
-  LineChart, Line,
-  AreaChart, Area,
-  XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer,
-} from "recharts";
+import React, { useEffect, useState } from "react";
+
 import "./styles.css";
-
-/* piezas reusables, nombres sencillos */
-function KPIBox({ title, value }) {
-  return (
-    <div className="kpi">
-      <div className="note">{title}</div>
-      <div className="strong">{value}</div>
-    </div>
-  );
-}
-
-function ChartBox({ title, children }) {
-  return (
-    <section className="card">
-      <h4 className="title">{title}</h4>
-      <div className="body">{children}</div>
-    </section>
-  );
-}
-
-/* datos demo */
-const conversionData = [
-  { name: "Ene", value: 80 },
-  { name: "Feb", value: 75 },
-  { name: "Mar", value: 70 },
-  { name: "Abr", value: 50 },
-];
-
-const channelData = [
-  { name: "Ene", value: 65 },
-  { name: "Feb", value: 70 },
-  { name: "Mar", value: 85 },
-  { name: "Abr", value: 80 },
-];
-
-const educationData = [
-  { name: "Test1", value: 85 },
-  { name: "Test2", value: 75 },
-  { name: "Test3", value: 70 },
-];
-
-const durationData = [
-  { name: "Test1", value: 60 },
-  { name: "Test2", value: 50 },
-  { name: "Test3", value: 65 },
-];
-
-const weekdayData = [
-  { name: "Lun", value: 55 },
-  { name: "Mar", value: 65 },
-  { name: "Mie", value: 75 },
-  { name: "Jue", value: 70 },
-];
+import { fetchKPIs, rentabilidad } from "./fetchKPIs";
+import { ChartBox, KPIBox } from "./componentesKPIs";
+import Header from "../components/Header";
 
 export default function Dashboard() {
+  const [G, setG] = useState(200); //ganancia por conversion
+  const [C, setC] = useState(0.5); //costo por contacto
+  const [rentabilidadProy, setRentabilidadProy] = useState(0);
+  const [tasaConversion, setTasaConversion] = useState(0);
+  const [duracionPromedio, setDuracionPromedio] = useState(0);
+  const [contactosPorMes, setContactosPorMes] = useState([]);
+  const [tasaExitoCanal, setTasaExitoCanal] = useState([]);
+  const [conversionPorEdad, setConversionPorEdad] = useState([]);
+  const [impactoHistorial, setImpactoHistorial] = useState([]);
+  const [indiceEficiencia, setIndiceEficiencia] = useState([]);
+
+  useEffect(() => {
+    fetchKPIs(G, C).then((data) => {
+      console.log(data);
+      setRentabilidadProy(data.rentabilidad.profit);
+      setTasaConversion(data.tasaConversion.conversionRate);
+      setDuracionPromedio(data.avgDuration.avgDuration);
+      setContactosPorMes(data.contactosPorMes);
+      setTasaExitoCanal(data.tasaExitoPorCanal);
+      setConversionPorEdad(data.conversionPorEdad);
+      const historial = data.impactoHistorialPrevio.map( d => ({
+        poutcome: d.poutcome,
+        yes: (d.yes / d.total) * 100,
+        no: (d.no / d.total) * 100,
+      }))
+      setImpactoHistorial(historial);
+      setIndiceEficiencia(data.indiceEficienciaPorCampaña);
+    });
+  }, []);
+
   return (
     <div className="page">
-      <header className="header">
-        <div className="user">A</div>
-        <h1 className="brand">BankCampains</h1>
-      </header>
-
-      <div className="bar">
-        <button className="back" aria-label="Volver">←</button>
-        <h2>Dashboard General</h2>
-      </div>
+      <Header title="Dashboard General" />
 
       <main className="wrap">
         {/* izquierda */}
@@ -99,13 +67,27 @@ export default function Dashboard() {
             <p className="muted">Lunes</p>
           </div>
         </aside>
-
-        {/* derecha */}
+        
         <section className="content">
           <div className="kpis">
-            <KPIBox title="Tasa de Conversión" value="12,8%" />
-            <KPIBox title="Contactos Totales" value="41.237" />
-            <KPIBox title="Duración media de llamadas" value="4m 52s" />
+            <KPIBox title="Tasa de Conversión" value={`${tasaConversion}%`} />
+            <KPIBox title="Duración Promedio" value={`${duracionPromedio} min`} />
+            <KPIBox title="Rentabilidad Proyectada" value={rentabilidadProy}>
+              <div className="note">Parámetros (G y C)</div>
+                <div>
+                  <input type="number" min="20" max="1000" step="10" value={G} required onChange={
+                      (e) => setG(Number(e.target.value))
+                    }
+                  />
+                  <input type="number" min="0.1" max="3.0" step="0.05" value={C} required onChange={
+                      (e) => setC(Number(e.target.value))
+                    }
+                  />
+                </div>
+                <button onClick={async () => {
+                  await rentabilidad(G, C).then(data => setRentabilidadProy(data.profit))
+                }}>Actualizar</button>
+            </KPIBox>
           </div>
 
           <div className="actions">
@@ -115,65 +97,45 @@ export default function Dashboard() {
           </div>
 
           <div className="charts">
-            <ChartBox title="Conversión por mes">
-              <ResponsiveContainer width="100%" height="100%">
-                <LineChart data={conversionData}>
-                  <CartesianGrid strokeDasharray="3 3" />
-                  <XAxis dataKey="name" />
-                  <YAxis />
-                  <Tooltip />
-                  <Line type="monotone" dataKey="value" stroke="var(--chart-line)" />
-                </LineChart>
-              </ResponsiveContainer>
-            </ChartBox>
+            <ChartBox
+              title="Contactos por mes"
+              data={contactosPorMes}
+              xKey="index"
+              bars={[{ key: "total" }]}
+            />
 
-            <ChartBox title="Conversión por canal">
-              <ResponsiveContainer width="100%" height="100%">
-                <AreaChart data={channelData}>
-                  <CartesianGrid strokeDasharray="3 3" />
-                  <XAxis dataKey="name" />
-                  <YAxis />
-                  <Tooltip />
-                  <Area type="monotone" dataKey="value" stroke="var(--chart-line)" fill="var(--chart-fill)" fillOpacity="0.25" />
-                </AreaChart>
-              </ResponsiveContainer>
-            </ChartBox>
+            <ChartBox
+              title="Tasa de éxito por canal"
+              data={tasaExitoCanal}
+              xKey="contact"
+              bars={[{ key: "yes" }]}
+            />
 
-            <ChartBox title="Distribución por educación">
-              <ResponsiveContainer width="100%" height="100%">
-                <LineChart data={educationData}>
-                  <CartesianGrid strokeDasharray="3 3" />
-                  <XAxis dataKey="name" />
-                  <YAxis />
-                  <Tooltip />
-                  <Line type="monotone" dataKey="value" stroke="var(--chart-line)" />
-                </LineChart>
-              </ResponsiveContainer>
-            </ChartBox>
+            <ChartBox
+              title="Conversión por edad"
+              data={conversionPorEdad}
+              xKey="segment"
+              bars={[{ key: "conversionRate" }]}
+            />
 
-            <ChartBox title="Duración de llamadas">
-              <ResponsiveContainer width="100%" height="100%">
-                <LineChart data={durationData}>
-                  <CartesianGrid strokeDasharray="3 3" />
-                  <XAxis dataKey="name" />
-                  <YAxis />
-                  <Tooltip />
-                  <Line type="monotone" dataKey="value" stroke="var(--chart-line)" />
-                </LineChart>
-              </ResponsiveContainer>
-            </ChartBox>
-
-            <ChartBox title="Día de semana vs. conversión">
-              <ResponsiveContainer width="100%" height="100%">
-                <AreaChart data={weekdayData}>
-                  <CartesianGrid strokeDasharray="3 3" />
-                  <XAxis dataKey="name" />
-                  <YAxis />
-                  <Tooltip />
-                  <Area type="monotone" dataKey="value" stroke="var(--chart-line)" fill="var(--chart-fill)" fillOpacity="0.25" />
-                </AreaChart>
-              </ResponsiveContainer>
-            </ChartBox>
+            <ChartBox
+              title="Impacto del historial previo"
+              data={impactoHistorial}
+              xKey="poutcome"
+              yAxis={{ tickFormatter: v => `${v}%`, domain: [0, 100] }}
+              bars={[
+                { key: "yes", name: "Aceptó (yes)", color: "#16a34a", stackId: "a" },
+                { key: "no",  name: "No aceptó (no)", color: "#ef4444", stackId: "a" },
+              ]}
+            />
+              
+            <ChartBox
+              title="Índice de eficiencia por campaña"
+              data={indiceEficiencia}
+              xKey="campaignCount"
+              bars={[{ key: "efficiency" }]}
+            />
+            
           </div>
         </section>
       </main>

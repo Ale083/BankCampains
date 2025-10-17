@@ -1,6 +1,7 @@
 const Contact = require('../../model/contact')
 const buildMatch = require('../construirMatchFiltro')
 const { conversionRate, rentabilidad } = require('./calculadorKpis')
+const { redondear } = require('../../utils/utils')
 
 exports.getConversionRate = async (q) => {
   const match = buildMatch(q)
@@ -10,7 +11,7 @@ exports.getConversionRate = async (q) => {
   ])
   const total = r?.total ?? 0
   const yes = r?.yes ?? 0
-  return { conversionRate: conversionRate(yes, total), total, yes }
+  return { conversionRate: conversionRate(yes, total) }
 }
 
 exports.getAvgDuration = async (q) => {
@@ -19,7 +20,7 @@ exports.getAvgDuration = async (q) => {
     { $match: match },
     { $group: { _id: null, avgDuration: { $avg: '$duration' }, total: { $sum: 1 } } }
   ])
-  return { avgDuration: r?.avgDuration ?? 0, total: r?.total ?? 0 }
+  return { avgDuration: redondear(r?.avgDuration ?? 0)}
 }
 
 exports.getRentabilidad = async (q, G, C) => {
@@ -31,10 +32,6 @@ exports.getRentabilidad = async (q, G, C) => {
   const total = r?.total ?? 0
   const yes = r?.yes ?? 0
   return {
-    profit: rentabilidad(yes, total, G, C),
-    accepted: yes,
-    total,
-    conversionRate: conversionRate(yes, total),
-    G, C
+    profit: rentabilidad(yes, total, G, C)
   }
 }

@@ -23,8 +23,8 @@ const Header = ({ title = "Carga de datos" }) => {
           color: '#1f2937',
           fontWeight: 700
         }}>
-          NO 
-        </div> {/* son mis iniciales como ejemplo*/}
+          {JSON.parse(localStorage.getItem('session')).nombre.trim().split(/\s+/).map(w => w[0]).slice(0,2).join('').toUpperCase()} 
+        </div> {/* Primeras letras */}
 
         <h1 style={{
           position: 'absolute',

@@ -5,7 +5,7 @@ const router = Router()
 
 // Número total de contactos por mes
 // /kpis/contacts-by-month?...
-// [{ month: string, total: number }]
+// [{ index: number, total: number }]
 router.get('/contacts-by-month', async (req, res) => {
   try { res.json(await service.contactsByMonth(req.query)) }
   catch { res.status(500).json({ error: 'Error en número total de contactos' }) }
@@ -13,7 +13,7 @@ router.get('/contacts-by-month', async (req, res) => {
 
 // Tasa de éxito por canal
 // /kpis/channel-success?...
-// [{ contact: 'cellular'|'telephone', total: number, yes: number, conversionRate: number }]
+// [{ contact: 'cellular'|'telephone', yes: number }]
 router.get('/channel-success', async (req, res) => {
   try { res.json(await service.channelSuccess(req.query)) }
   catch { res.status(500).json({ error: 'Error en tasa de éxito por canal' }) }
