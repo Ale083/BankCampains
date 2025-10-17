@@ -1,6 +1,12 @@
+const { isNum } = require("../utils/utils");
+
 //TODO: ponerlo en el servicio de filtros
 module.exports = function buildMatch(q = {}) {
   const m = {}; //filtro final
+
+  if(typeof(q) === 'string') {
+    q = Object.fromEntries(new URL(q).searchParams.entries());
+  }
 
   const cats = [
     'job',
