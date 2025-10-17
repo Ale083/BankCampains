@@ -5,7 +5,7 @@ const router = Router()
 
 // Tasa de conversión
 // /kpis/conversion-rate?...
-// { conversionRate: number, total: number, yes: number }
+// { conversionRate: number}
 router.get('/conversion-rate', async (req, res) => {
   try { res.json(await service.getConversionRate(req.query)) }
   catch { res.status(500).json({ error: 'Error en tasa de conversión' }) }
@@ -13,7 +13,7 @@ router.get('/conversion-rate', async (req, res) => {
 
 // Duración promedio de llamadas
 // /kpis/avg-duration?...
-// { avgDuration: number, total: number }
+// { avgDuration: number}
 router.get('/avg-duration', async (req, res) => {
   try { res.json(await service.getAvgDuration(req.query)) }
   catch { res.status(500).json({ error: 'Error en duración promedio de llamadas' }) }
@@ -21,7 +21,7 @@ router.get('/avg-duration', async (req, res) => {
 
 // Rentabilidad proyectada
 // /kpis/rentabilidad?G=...&C=...&...
-// { profit: number, accepted: number, total: number, conversionRate: number, G: number, C: number }
+// { profit: number }
 router.get('/rentabilidad', async (req, res) => {
   try {
     const G = Number(req.query.G)

@@ -1,4 +1,6 @@
-exports.conversionRate = (yes, total) => (total ? (yes * 100) / total : 0)
+const { redondear } = require("../../utils/utils")
+
+exports.conversionRate = (yes, total) => redondear(total ? (yes * 100) / total : 0)
 
 exports.rentabilidad = (yes, total, G, C) => yes * G - total * C
 
@@ -34,11 +36,4 @@ exports.monthIndexExpr = () => ({
   },
 })
 
-// expresión estándar para tasa dentro de $project
-exports.convRateProject = {
-  $cond: [
-    { $gt: ['$total', 0] },
-    { $multiply: [{ $divide: ['$yes', '$total'] }, 100] },
-    0,
-  ],
-}
+

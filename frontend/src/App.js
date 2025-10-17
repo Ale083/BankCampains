@@ -7,7 +7,10 @@ import './App.css';
 import Dashboard from './dashboard/dashboard';
 
 export default function App() {
-
+  // Simular sesión de usuario para fase 1
+  const data = {id: 1, nombre: "Test", permisos: 'admin'};
+  localStorage.setItem('session', JSON.stringify(data));
+  
   return (
     <div>
 
