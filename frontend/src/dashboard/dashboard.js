@@ -4,6 +4,7 @@ import "./styles.css";
 import { fetchKPIs, rentabilidad } from "./fetchKPIs";
 import { ChartBox, KPIBox } from "./componentesKPIs";
 import Header from "../components/Header";
+import FilterSummary from "./sidebarFiltros";
 
 export default function Dashboard() {
   const [G, setG] = useState(200); //ganancia por conversion
@@ -43,29 +44,7 @@ export default function Dashboard() {
       <main className="wrap">
         {/* izquierda */}
         <aside className="sidebar">
-          <h3>Filtros aplicados</h3>
-
-          <div>
-            <label className="note">Edad</label>
-            <p className="muted">18 años</p>
-          </div>
-
-          <div>
-            <label className="note">Educación</label>
-            <p className="muted">• Primaria</p>
-            <p className="muted">• Secundaria</p>
-            <p className="muted">• Bachiller</p>
-          </div>
-
-          <div>
-            <label className="note">Mes</label>
-            <p className="muted">Abril</p>
-          </div>
-
-          <div>
-            <label className="note">Día de la semana</label>
-            <p className="muted">Lunes</p>
-          </div>
+           <FilterSummary query={(Object.fromEntries(new URL(localStorage.getItem("filtros")).searchParams.entries()))} />
         </aside>
         
         <section className="content">
