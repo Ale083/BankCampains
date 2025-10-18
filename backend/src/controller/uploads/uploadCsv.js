@@ -1,3 +1,5 @@
+// acá vamos a manejar todo todo lo de la carga, entonces validamos y subimos y sacamos la info para el reporte de calidad
+
 const express = require('express');
 const multer = require('multer');
 const csv = require('csv-parser');
@@ -5,11 +7,11 @@ const Contact = require('../../model/contact');
 
 const router = express.Router();
 
-// vamos a manejar los csv en memoria
+
 const upload = multer({ 
   storage: multer.memoryStorage(), 
   limits: {
-    fileSize: 50 * 1024 * 1024, // 50MB máximo
+    fileSize: 50 * 1024 * 1024, // esto pq son 50MB max
     files: 1 
   },
   fileFilter: function (req, file, cb) {
@@ -22,9 +24,28 @@ const upload = multer({
   }
 });
 
-// validaciones de info
+// nulos
+const isNullish = (value) => {
+  const s = value === undefined || value === null ? '' : String(value).trim();
+  return s === '' || s.toLowerCase() === 'null';
+};
+
+// validaciones
 const validateRecord = (row, rowIndex) => {
   const errors = [];
+
+ 
+  const isEmpty = (v) => v === undefined || v === null || String(v).trim() === '';
+  const requiredFields = [
+    'age','job','marital','education','default','housing','loan','contact','month','day_of_week',
+    'duration','campaign','pdays','previous','poutcome','emp.var.rate','cons.price.idx','cons.conf.idx',
+    'euribor3m','nr.employed','y'
+  ];
+  for (const f of requiredFields) {
+    if (isEmpty(row[f])) {
+      errors.push(`${f} es requerido y no puede ser nulo/vacío`);
+    }
+  }
   
 
   const age = parseInt(row.age);
@@ -190,7 +211,7 @@ const mapCsvToContact = (row) => {
   };
 };
 
-
+// sube
 const uploadCsv = async (req, res) => {
   try {
     if (!req.file) {
@@ -204,6 +225,9 @@ const uploadCsv = async (req, res) => {
     const { Readable } = require('stream');
     let rowIndex = 0;
     
+
+    const columnsSet = new Set();
+    const nullsCountByCol = new Map();
    
     const bufferStream = new Readable();
     bufferStream.push(req.file.buffer);
@@ -214,6 +238,21 @@ const uploadCsv = async (req, res) => {
       .pipe(csv({ separator: ';' })) 
       .on('data', (row) => {
         try {
+          
+          Object.keys(row).forEach((k) => {
+            if (typeof row[k] === 'string') {
+              row[k] = row[k].trim();
+            }
+          });
+
+          
+          Object.keys(row).forEach((k) => {
+            columnsSet.add(k);
+            if (isNullish(row[k])) {
+              nullsCountByCol.set(k, (nullsCountByCol.get(k) || 0) + 1);
+            }
+          });
+
           const validation = validateRecord(row, rowIndex);
           
           if (validation.isValid) {
@@ -243,6 +282,17 @@ const uploadCsv = async (req, res) => {
           let insertedRecords = [];
           let dbErrors = [];
 
+          // borramos todo antes de insertar lo nuevo para solo tener los datos del csv actual
+          try {
+            await Contact.deleteMany({});
+          } catch (clearErr) {
+            console.error('No se pudo limpiar la colección Contact antes de insertar:', clearErr);
+            return res.status(500).json({
+              error: 'No se pudo limpiar la colección antes de la carga',
+              details: clearErr.message
+            });
+          }
+
           if (validContacts.length > 0) {
             try {
               insertedRecords = await Contact.insertMany(validContacts, { ordered: false });
@@ -264,6 +314,24 @@ const uploadCsv = async (req, res) => {
             }
           }
           
+          // para el reporte de calidad
+          const totalRecords = rowIndex;
+          const columns = Array.from(columnsSet);
+          const nullsByColumn = Array.from(nullsCountByCol.entries()).map(([name, nulls]) => ({
+            name,
+            nulls,
+            percent: totalRecords ? +((nulls * 100) / totalRecords).toFixed(1) : 0,
+          }));
+          const totalNulls = nullsByColumn.reduce((a, c) => a + c.nulls, 0);
+          const columnCount = columns.length || 1;
+          const nullPercent = (totalRecords && columnCount)
+            ? +(((totalNulls) / (totalRecords * columnCount)) * 100).toFixed(1)
+            : 0;
+
+          
+          const rejectedCount = rejectedRecords.length;
+          const percentRejected = totalRecords ? +(((rejectedCount) / totalRecords) * 100).toFixed(1) : 0;
+          const qualityScore = Math.max(0, +(100 - nullPercent - percentRejected).toFixed(1));
          
           const response = {
             message: 'Procesamiento de CSV completado',
@@ -272,7 +340,14 @@ const uploadCsv = async (req, res) => {
               validRecords: validContacts.length,
               insertedRecords: insertedRecords.length,
               rejectedRecords: rejectedRecords.length,
-              dbErrors: dbErrors.length
+              dbErrors: dbErrors.length,
+     
+              // esto que falta es para el reporte
+              columns,
+              nullsByColumn,
+              nullPercent,
+              percentRejected,
+              qualityScore
             }
           };
           

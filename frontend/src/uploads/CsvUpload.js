@@ -2,6 +2,7 @@ import React, { useState, useRef } from 'react';
 import Papa from 'papaparse';
 import Header from '../components/Header';
 import './styles.css';
+import { useNavigate } from 'react-router-dom';
 
 const requisitos = [
   'Formato CSV',
@@ -23,6 +24,7 @@ export default function CsvUpload({ onNext }) {
   const [isDragOver, setIsDragOver] = useState(false);
   const fileRef = useRef();
   const [fileObj, setFileObj] = useState(null);
+  const navigate = useNavigate();
 
   const handleFile = (e) => {
     const file = e.target.files[0];
@@ -32,7 +34,7 @@ export default function CsvUpload({ onNext }) {
   };
 
   const processFile = (file) => {
-    // 50MB max para el archivo
+    // 50MB max para el archivo, tmb lo validamos aca 
     const maxSize = 50 * 1024 * 1024; 
     if (file.size > maxSize) {
       setMessage('Error: El archivo es demasiado grande. Máximo permitido: 50MB');
@@ -105,19 +107,28 @@ export default function CsvUpload({ onNext }) {
         const { summary } = data;
         setUploadResult(data);
         
-        let messageText = `✔ ${data.message}`;
+        let messageText = '';
         
         if (summary) {
-          messageText += `\n Total: ${summary.totalRecords} registros`;
-          messageText += `\n Aceptados: ${summary.insertedRecords}`;
-          messageText += `\n Rechazados: ${summary.rejectedRecords}`;
+          messageText = `Total: ${summary.totalRecords} registros`;
+          messageText += `\nAceptados: ${summary.insertedRecords}`;
+          messageText += `\nRechazados: ${summary.rejectedRecords}`;
           
           if (summary.dbErrors > 0) {
-            messageText += `\n Errores de BD: ${summary.dbErrors}`;
+            messageText += `\nErrores de BD: ${summary.dbErrors}`;
           }
         }
         
         setMessage(messageText);
+
+        // vamos al reporte pero pasa los datos para el reporte
+        navigate('/reporte', {
+          state: {
+            result: data,
+            columns,
+            fileName
+          }
+        });
       } else {
         setUploadResult(null);
         setMessage(` Error: ${data.error || 'No se pudo cargar el archivo.'}`);
