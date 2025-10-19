@@ -1,4 +1,4 @@
-import React from "react";
+import React, {forwardRef} from "react";
 
 const LABEL = {
   job:"Trabajo", marital:"Estado civil", education:"Educación", default:"Mora de crédito",
@@ -57,7 +57,7 @@ const pretty = v =>
     .map(s => MAP[s.trim()] ?? s.trim())
     .filter(Boolean);
 
-export default function FilterSummary({ query }) {
+export const FilterSummary = forwardRef(function FilterSummary({ query }, ref) {
   const ranges = Object.entries(query).reduce((a,[k,v])=>{
     const m = k.match(/^(.*)(Min|Max)$/); if(!m) return a;
     (a[m[1]] ??= {})[m[2]==="Min"?"min":"max"] = v; return a;
@@ -73,7 +73,7 @@ export default function FilterSummary({ query }) {
   );
 
   return (
-    <div>
+    <div ref={ref}>
       <h3>Filtros aplicados</h3>
 
       {Object.entries(ranges).map(([base,{min,max}])=>{
@@ -102,4 +102,4 @@ export default function FilterSummary({ query }) {
       })}
     </div>
   );
-}
+});
