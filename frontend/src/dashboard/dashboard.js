@@ -1,10 +1,10 @@
-import React, { useEffect, useState } from "react";
-
+import React, { useEffect, useState, useRef} from "react";
 import "./styles.css";
 import { fetchKPIs, rentabilidad } from "./fetchKPIs";
 import { ChartBox, KPIBox } from "./componentesKPIs";
 import Header from "../components/Header";
 import FilterSummary from "./sidebarFiltros";
+import { downloadPdf } from "./exportToPDF";
 
 export default function Dashboard() {
   const [G, setG] = useState(200); //ganancia por conversion
@@ -20,7 +20,6 @@ export default function Dashboard() {
 
   useEffect(() => {
     fetchKPIs(G, C).then((data) => {
-      console.log(data);
       setRentabilidadProy(data.rentabilidad.profit);
       setTasaConversion(data.tasaConversion.conversionRate);
       setDuracionPromedio(data.avgDuration.avgDuration);
@@ -37,14 +36,16 @@ export default function Dashboard() {
     });
   }, []);
 
+  const chartRef = useRef(null);
+
   return (
     <div className="page">
       <Header title="Dashboard General" />
 
-      <main className="wrap">
+      <main className="wrap" ref={chartRef}>
         {/* izquierda */}
         <aside className="sidebar">
-           <FilterSummary query={(Object.fromEntries(new URL(localStorage.getItem("filtros")).searchParams.entries()))} />
+           <FilterSummary query={(Object.fromEntries(new URLSearchParams(localStorage.getItem("filtros"))))} />
         </aside>
         
         <section className="content">
@@ -70,8 +71,8 @@ export default function Dashboard() {
           </div>
 
           <div className="actions">
-            <button className="btn">Volver</button>
-            <button className="btn">Exportar PDF</button>
+            <button className="btn" onClick={console.log("TODO")}>Volver</button>
+            <button className="btn" onClick={() => downloadPdf(chartRef)}>Exportar PDF</button>
             <button className="btn">Exportar Excel</button>
           </div>
 

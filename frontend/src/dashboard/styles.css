@@ -71,6 +71,7 @@ body {
   display: grid;
   grid-template-columns: 1fr;
   gap: 16px;
+  align-items: start;
 }
 @media (min-width: 980px) {
   .wrap { grid-template-columns: 280px 1fr; }
@@ -91,6 +92,7 @@ body {
 
 /* KPIs */
 .kpis {
+  align-items: start;
   display: grid;
   grid-template-columns: 1fr;
   gap: 10px;
@@ -99,6 +101,7 @@ body {
   .kpis { grid-template-columns: repeat(3, 1fr); }
 }
 .kpi {
+  align-items: start;
   text-align: center;
   background: #fff;
   border: 1px solid #e5e7eb;
@@ -121,6 +124,7 @@ body {
 
 /* Charts */
 .charts {
+  align-items: start;
   display: grid;
   grid-template-columns: 1fr;
   gap: 10px;
@@ -129,6 +133,7 @@ body {
 @media (min-width: 1280px) { .charts { grid-template-columns: repeat(3, 1fr); } }
 
 .card {
+  align-items: start;
   background: #fff;
   border: 1px solid #e5e7eb;
   border-radius: 8px;
