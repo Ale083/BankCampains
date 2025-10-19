@@ -3,8 +3,9 @@ import "./styles.css";
 import { fetchKPIs, rentabilidad } from "./fetchKPIs";
 import { ChartBox, KPIBox } from "./componentesKPIs";
 import Header from "../components/Header";
-import FilterSummary from "./sidebarFiltros";
 import { downloadPdf } from "./exportToPDF";
+import { exportToExcel } from "./exportToExcel";
+import { FilterSummary } from "./sidebarFiltros";
 
 export default function Dashboard() {
   const [G, setG] = useState(200); //ganancia por conversion
@@ -37,7 +38,15 @@ export default function Dashboard() {
   }, []);
 
   const chartRef = useRef(null);
-
+  const RefTasaConversion = useRef(null);
+  const RefDuracionPromedio = useRef(null);
+  const RefRentabilidadProy = useRef(null);
+  const RefContactosPorMes = useRef(null);
+  const RefTasaExitoCanal = useRef(null);
+  const RefConversionPorEdad = useRef(null);
+  const RefImpactoHistorial = useRef(null);
+  const RefIndiceEficiencia = useRef(null);
+  const RefFiltros = useRef(null);
   return (
     <div className="page">
       <Header title="Dashboard General" />
@@ -45,14 +54,14 @@ export default function Dashboard() {
       <main className="wrap" ref={chartRef}>
         {/* izquierda */}
         <aside className="sidebar">
-           <FilterSummary query={(Object.fromEntries(new URLSearchParams(localStorage.getItem("filtros"))))} />
+           <FilterSummary query={(Object.fromEntries(new URLSearchParams(localStorage.getItem("filtros"))))} ref={RefFiltros} />
         </aside>
         
         <section className="content">
           <div className="kpis">
-            <KPIBox title="Tasa de Conversión" value={`${tasaConversion}%`} />
-            <KPIBox title="Duración Promedio" value={`${duracionPromedio} min`} />
-            <KPIBox title="Rentabilidad Proyectada" value={rentabilidadProy}>
+            <KPIBox ref={RefTasaConversion} title="Tasa de Conversión" value={`${tasaConversion}%`} />
+            <KPIBox ref={RefDuracionPromedio} title="Duración Promedio" value={`${duracionPromedio} min`} />
+            <KPIBox ref={RefRentabilidadProy} title="Rentabilidad Proyectada" value={rentabilidadProy}>
               <div className="note">Parámetros (G y C)</div>
                 <div>
                   <input type="number" min="20" max="1000" step="10" value={G} required onChange={
@@ -73,11 +82,17 @@ export default function Dashboard() {
           <div className="actions">
             <button className="btn" onClick={console.log("TODO")}>Volver</button>
             <button className="btn" onClick={() => downloadPdf(chartRef)}>Exportar PDF</button>
-            <button className="btn">Exportar Excel</button>
+            <button className="btn" onClick={() => 
+              exportToExcel({
+                charts: [RefTasaConversion, RefDuracionPromedio, RefRentabilidadProy, RefContactosPorMes, RefTasaExitoCanal, RefConversionPorEdad, RefImpactoHistorial, RefIndiceEficiencia, RefFiltros],
+                filename: "Dashboard.xlsx",
+              })
+            }>Exportar Excel</button>
           </div>
 
           <div className="charts">
             <ChartBox
+              ref={RefContactosPorMes}
               title="Contactos por mes"
               data={contactosPorMes}
               xKey="index"
@@ -85,6 +100,7 @@ export default function Dashboard() {
             />
 
             <ChartBox
+              ref={RefTasaExitoCanal}
               title="Tasa de éxito por canal"
               data={tasaExitoCanal}
               xKey="contact"
@@ -92,6 +108,7 @@ export default function Dashboard() {
             />
 
             <ChartBox
+              ref={RefConversionPorEdad}
               title="Conversión por edad"
               data={conversionPorEdad}
               xKey="segment"
@@ -99,6 +116,7 @@ export default function Dashboard() {
             />
 
             <ChartBox
+              ref={RefImpactoHistorial}
               title="Impacto del historial previo"
               data={impactoHistorial}
               xKey="poutcome"
@@ -110,6 +128,7 @@ export default function Dashboard() {
             />
               
             <ChartBox
+              ref={RefIndiceEficiencia}
               title="Índice de eficiencia por campaña"
               data={indiceEficiencia}
               xKey="campaignCount"

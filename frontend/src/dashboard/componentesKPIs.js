@@ -1,18 +1,19 @@
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer} from "recharts";
+import React, {forwardRef} from "react";
 
-export function KPIBox({ title, value, children}) {
+export const KPIBox = forwardRef(({ title, value, children}, ref) => {
   return (
-    <div className="kpi">
+    <div className="kpi" ref={ref}>
       <div className="note">{title}</div>
       <div className="strong">{value}</div>
       <div>{children}</div>
     </div>
   );
-}
+});
 
-export function ChartBox({title, data, xKey, bars, yAxis}) {
+export const ChartBox = forwardRef(({title, data, xKey, bars, yAxis}, ref) => {
   return (
-    <section className="card">
+    <section className="card" ref={ref}>
       <h4 className="title">{title}</h4>
       <div className="body">
         <ResponsiveContainer width="100%" height="100%">
@@ -35,4 +36,4 @@ export function ChartBox({title, data, xKey, bars, yAxis}) {
       </div>
     </section>
   );
-}
+});
