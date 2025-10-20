@@ -6,6 +6,9 @@ const cors = require('cors');
 const kpiNum = require('./controller/kpis/kpiNum')
 const kpiTablas = require('./controller/kpis/kpiTablas')
 const uploadCsv = require('./controller/uploads/uploadCsv')
+const contacts = require('./controller/contacts/contacts')
+const clearContacts = require('./controller/contacts/clear')
+const history = require('./controller/history/history')
 
 const app = express();
 app.use(cors());
@@ -14,6 +17,9 @@ app.use(express.json({ limit: '10mb' }));
 app.use('/kpis', kpiNum);
 app.use('/kpis', kpiTablas);
 app.use('/api/uploads', uploadCsv);
+app.use('/api/contacts', contacts);
+app.use('/api/contacts', clearContacts);
+app.use('/api/history', history);
 
 async function start() {
   try {
