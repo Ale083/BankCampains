@@ -102,7 +102,7 @@ const Header = ({ title = "Carga de datos", showNavbar = true }) => {
             { to: '/', label: 'Carga de Datos', enabled: true, requirement: '', clearData: true },
             { to: '/dashboardKPIs', label: 'Dashboard', enabled: hasValidData, requirement: 'datos válidos' },
             { to: '/historial', label: 'Historial', enabled: true, requirement: '' },
-            { to: '/descargas', label: 'Descargas', enabled: true, requirement: '' },
+            { to: '/descargas', label: 'Descargas', enabled: hasValidData, requirement: 'datos válidos' },
           ].map(link => (
             <NavLink
               key={link.to}
@@ -129,6 +129,8 @@ const Header = ({ title = "Carga de datos", showNavbar = true }) => {
                     }
                     if (link.to === '/dashboardKPIs') {
                       message += '\n\nVaya a "Carga de Datos" para subir un archivo CSV con datos válidos.';
+                    } else if (link.to === '/descargas') {
+                      message += '\n\nPrimero debe cargar datos válidos.';
                     }
                     alert(message);
                   }
