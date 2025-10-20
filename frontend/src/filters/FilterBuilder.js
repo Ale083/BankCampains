@@ -173,7 +173,7 @@ export default function FilterBuilder() {
   const [day, setDay] = useState([null, null]);
   const [duration, setDuration] = useState([null, null]);
   const [campaign, setCampaign] = useState([null, null]);
-  const [pdays, setPdays] = useState([-1, 999]);
+  const [pdays, setPdays] = useState([null, null]);
   const [previous, setPrevious] = useState([null, null]);
   const [empVar, setEmpVar] = useState([null, null]);
   const [cpi, setCpi] = useState([null, null]);
@@ -227,7 +227,7 @@ export default function FilterBuilder() {
     setDef(new Set()); setHousing(new Set()); setLoan(new Set());
     setContact(new Set()); setMonth(new Set()); setPoutcome(new Set()); setTarget(new Set());
     setAge([null,null]); setBalance([null,null]); setDay([null,null]); setDuration([null,null]);
-    setCampaign([null,null]); setPdays([-1,999]); setPrevious([null,null]);
+    setCampaign([null,null]); setPdays([null,null]); setPrevious([null,null]);
     setEmpVar([null,null]); setCpi([null,null]); setCci([null,null]); setEuribor([null,null]); setNrEmp([null,null]);
     setPresetName('');
   }
@@ -237,6 +237,7 @@ export default function FilterBuilder() {
     try {
       setIsSaving(true);
       const saved = await createSavedFilter({ name, filter });
+      console.log('Preset guardado:', saved);
       setPresetName('');
       alert(`Preset guardado${saved?.name ? `: ${saved.name}` : ''}.`);
     } catch (err) {
