@@ -1,6 +1,10 @@
 import React, { useEffect, useState } from 'react';
 import { Routes, Route, Navigate } from 'react-router-dom';
 import CsvUpload from './uploads/CsvUpload';
+import Historial from './downloads/Historial';
+import CentroDescargas from './downloads/CentroDescargas';
+
+import './App.css';
 import Dashboard from './dashboard/dashboard';
 import ReporteCalidad from './uploads/ReporteCalidad';
 import FilterBuilder from './filters/FilterBuilder';
@@ -56,7 +60,9 @@ export default function App() {
         <Route path="/reporte" element={<ReporteCalidad />} />
         <Route path="/filtros" element={<FilterBuilder />} />
         <Route path="/explorador" element={<Explorer />} />
-        <Route path="*" element={<Navigate to="/" replace />} />
+        <Route path="/historial" element={<Historial />} />
+        <Route path="/descargas" element={<CentroDescargas />} />
+        <Route path="*" element={<Navigate to={'/'} replace />} />
       </Routes>
     </div>
   );
