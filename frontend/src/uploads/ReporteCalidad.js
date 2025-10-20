@@ -48,7 +48,7 @@ export default function ReporteCalidad() {
 
   return (
     <div className="csv-upload-container">
-      <Header title="Reporte de Calidad de Datos" />
+      <Header title="Reporte de Calidad de Datos" showNavbar={false} />
 
       <div className="csv-upload-content">
        
