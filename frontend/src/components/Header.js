@@ -1,6 +1,36 @@
-import React from 'react';
+import React, { useState, useEffect } from 'react';
+import { NavLink, useLocation } from 'react-router-dom';
 
 const Header = ({ title = "Carga de datos" }) => {
+  const [hasValidData, setHasValidData] = useState(false);
+  const [hasHistoryData, setHasHistoryData] = useState(false);
+  const [isLoading, setIsLoading] = useState(true);
+  const location = useLocation();
+
+  useEffect(() => {
+    const checkDataAvailability = async () => {
+      try {
+        // Verificar si hay contactos en la base de datos (para Dashboard)
+        const contactsResponse = await fetch('/api/contacts/exists');
+        const contactsData = await contactsResponse.json();
+        setHasValidData(contactsData.exists);
+
+        // Verificar si hay al menos una carga en el historial (para Descargas)
+        const historyResponse = await fetch('/api/history');
+        const historyData = await historyResponse.json();
+        setHasHistoryData(historyData.items && historyData.items.length > 0);
+      } catch (error) {
+        console.error('Error checking data availability:', error);
+        setHasValidData(false);
+        setHasHistoryData(false);
+      } finally {
+        setIsLoading(false);
+      }
+    };
+
+    checkDataAvailability();
+  }, [location.pathname]); // Re-check when route changes
+
   return (
     <>
       <div style={{
@@ -55,6 +85,74 @@ const Header = ({ title = "Carga de datos" }) => {
         }}>
           {title}
         </h2>
+      </div>
+      {/* Nav bar */}
+      <div style={{
+        display: 'flex',
+        gap: 12,
+        alignItems: 'center',
+        justifyContent: 'center',
+        background: '#fff',
+        borderBottom: '1px solid #e5e7eb',
+        padding: '8px 12px'
+      }}>
+        {isLoading && (
+          <div style={{ color: '#6b7280', fontSize: 14, marginRight: 8 }}>
+            Verificando datos...
+          </div>
+        )}
+       
+        {[
+          { to: '/', label: 'Carga de Datos', enabled: true, requirement: '' },
+          { to: '/dashboardKPIs', label: 'Dashboard', enabled: hasValidData, requirement: 'CSV válido' },
+          { to: '/historial', label: 'Historial', enabled: true, requirement: '' },
+          { to: '/descargas', label: 'Descargas', enabled: hasHistoryData, requirement: 'historial de cargas' },
+        ].map(link => (
+          <NavLink
+            key={link.to}
+            to={link.enabled ? link.to : '#'}
+            style={({ isActive }) => ({
+              color: link.enabled 
+                ? (isActive ? '#1f2937' : '#374151')
+                : '#9ca3af',
+              textDecoration: isActive && link.enabled ? 'underline' : 'none',
+              fontWeight: isActive && link.enabled ? 700 : 500,
+              padding: '6px 8px',
+              borderRadius: 6,
+              cursor: link.enabled ? 'pointer' : 'not-allowed',
+              opacity: link.enabled ? 1 : 0.5,
+              position: 'relative'
+            })}
+            onClick={(e) => {
+              if (!link.enabled) {
+                e.preventDefault();
+                if (!isLoading) {
+                  let message = `No se puede acceder a ${link.label}.`;
+                  if (link.requirement) {
+                    message += `\n\nSe requiere: ${link.requirement}`;
+                  }
+                  if (link.to === '/dashboardKPIs') {
+                    message += '\n\nVaya a "Carga de Datos" para subir un archivo CSV con datos válidos.';
+                  } else if (link.to === '/descargas') {
+                    message += '\n\nPrimero debe realizar al menos una carga de datos.';
+                  }
+                  alert(message);
+                }
+              }
+            }}
+            title={link.enabled ? '' : `Requiere ${link.requirement || 'datos'}`}
+          >
+            {link.label}
+            {!link.enabled && !isLoading && (
+              <span style={{ 
+                marginLeft: 4, 
+                fontSize: 10, 
+                verticalAlign: 'super',
+                color: '#ef4444'
+              }}>🔒</span>
+            )}
+          </NavLink>
+        ))}
       </div>
     </>
   );
