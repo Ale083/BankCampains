@@ -4,6 +4,7 @@
   "type": "commonjs",
   "main": "index.js",
   "scripts": {
+    "ensure-indexes": "node ./src/scripts/ensureIndexes.js",
     "test": "echo \"Error: no test specified\" && exit 1",
     "start": "nodemon src/index.js"
   },

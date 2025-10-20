@@ -3,9 +3,15 @@ import { useLocation, useNavigate } from 'react-router-dom';
 import Header from '../components/Header';
 import './styles.css';
 import { ResponsiveContainer, BarChart, Bar, XAxis, YAxis, Tooltip, CartesianGrid } from 'recharts';
+import { Link } from 'react-router-dom';
+import DataTable from '../components/DataTable';  
+import { toQueryString } from '../api/btw';      
+import { useFilters } from '../store/useFilters';   
+
 
 export default function ReporteCalidad() {
   const navigate = useNavigate();
+  const { filter } = useFilters();
   const { state } = useLocation();
   const { result, columns = [], fileName = '' } = state || {};
 
@@ -14,13 +20,17 @@ export default function ReporteCalidad() {
     return null;
   }
 
+  
+  function goToExplorer() {
+    navigate('/explorador'); 
+  }
+
   const backendSummary = result?.summary || {};
   const totalRegistros = backendSummary.totalRecords ?? 0;
   const backendColumns = Array.isArray(backendSummary.columns) ? backendSummary.columns : null;
   const usedColumns = (backendColumns && backendColumns.length) ? backendColumns : columns;
   const columnas = usedColumns.length;
 
-  // traemsos los datos del backend para el reporte
   const rejected = Array.isArray(result?.rejectedRecords) ? result.rejectedRecords : [];
   const insertedRecords = backendSummary.insertedRecords ?? 0;
   const hasValidInserted = insertedRecords > 0;
@@ -140,6 +150,9 @@ export default function ReporteCalidad() {
             <button className="upload-button" onClick={() => navigate('/dashboardKPIs')}>Ir al dashboard</button>
           )}
         </div>
+        
+        <button className="fab" onClick={goToExplorer}>Explorador →</button>
+
 
        
         <div className="file-hint">Archivo: {fileName}</div>
