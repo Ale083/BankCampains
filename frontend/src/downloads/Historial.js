@@ -13,7 +13,7 @@ export default function Historial() {
   const [selectedId, setSelectedId] = useState(null);
   const [statusOk, setStatusOk] = useState(true);
   const [statusFail, setStatusFail] = useState(true);
-  const [range, setRange] = useState('today'); // today|7|30|custom
+  const [range, setRange] = useState(''); // Sin filtro de fecha por defecto
 
   const statuses = useMemo(() => {
     const s = [];
@@ -34,15 +34,28 @@ export default function Historial() {
     if (range === '30') {
       return { from: new Date(now.getTime() - 30 * 24 * 3600 * 1000).toISOString(), to: now.toISOString() };
     }
-    return {}; // personalizado se podría ampliar con datepickers
+    return {}; // Sin filtro de fecha si es personalizado o vacío
   }, [range]);
 
   const load = useCallback(async () => {
-    const q = buildQuery({ status: statuses, ...rangeToDates });
-    const r = await fetch('/api/history' + (q ? `?${q}` : ''));
-    const json = await r.json();
-    setItems(json.items || []);
-    if (!selectedId && json.items?.length) setSelectedId(json.items[0].id);
+    try {
+      const q = buildQuery({ status: statuses, ...rangeToDates });
+      const r = await fetch('/api/history' + (q ? `?${q}` : ''));
+      
+      if (!r.ok) {
+        throw new Error(`HTTP error! status: ${r.status}`);
+      }
+      
+      const json = await r.json();
+      setItems(json.items || []);
+      
+      if (!selectedId && json.items?.length) {
+        setSelectedId(json.items[0].id);
+      }
+    } catch (error) {
+      console.error('Error cargando historial:', error);
+      setItems([]);
+    }
   }, [statuses, rangeToDates, selectedId]);
 
   useEffect(() => { load(); }, [load]);
@@ -84,6 +97,10 @@ export default function Historial() {
           </div>
           <div className="filter-group">
             <div className="filter-title">Rango de Fechas</div>
+            <label className="filter-item">
+              <input type="radio" name="rango" checked={range === ''} onChange={() => setRange('')} />
+              Todos
+            </label>
             <label className="filter-item">
               <input type="radio" name="rango" checked={range === 'today'} onChange={() => setRange('today')} />
               Hoy

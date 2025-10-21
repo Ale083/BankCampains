@@ -31,10 +31,20 @@ export default function CentroDescargas() {
   }, [range]);
 
   const load = useCallback(async () => {
-    const q = buildQuery({ status, type, requestedBy, ...rangeToDates });
-    const r = await fetch('/api/history' + (q ? `?${q}` : ''));
-    const json = await r.json();
-    setItems(json.items || []);
+    try {
+      const q = buildQuery({ status, type, requestedBy, ...rangeToDates });
+      const r = await fetch('/api/exports' + (q ? `?${q}` : ''));
+      
+      if (!r.ok) {
+        throw new Error(`HTTP error! status: ${r.status}`);
+      }
+      
+      const json = await r.json();
+      setItems(json.items || []);
+    } catch (error) {
+      console.error('Error cargando centro de descargas:', error);
+      setItems([]);
+    }
   }, [status, type, requestedBy, rangeToDates]);
   useEffect(() => { load(); }, [load]);
 
@@ -46,7 +56,7 @@ export default function CentroDescargas() {
 
   const eliminar = async () => {
     for (const id of selected) {
-      await fetch(`/api/history/${id}`, { method: 'DELETE' });
+      await fetch(`/api/exports/${id}`, { method: 'DELETE' });
     }
     setSelected(new Set());
     load();
@@ -54,6 +64,8 @@ export default function CentroDescargas() {
 
   const reintentar = async () => {
     const ids = Array.from(selected);
+    // Para exports, podríamos implementar un endpoint de retry específico
+    // Por ahora, mantenemos la funcionalidad existente
     await fetch('/api/history/retry', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
@@ -68,18 +80,30 @@ export default function CentroDescargas() {
     for (const id of selected) {
       const it = items.find((x) => x.id === id);
       if (!it) continue;
-      const filtros = new URLSearchParams(it.filters || {}).toString();
-      const url = `/api/exports/${it.type === 'excel' ? 'excel' : 'csv'}?type=contacts${filtros ? '&' + filtros : ''}`;
-      const res = await fetch(url);
-      const blob = await res.blob();
-      const a = document.createElement('a');
-      const u = window.URL.createObjectURL(blob);
-      a.href = u;
-      a.download = `${it.name.replace(/\s+/g, '_')}.${it.type === 'excel' ? 'xlsx' : 'csv'}`;
-      document.body.appendChild(a);
-      a.click();
-      a.remove();
-      window.URL.revokeObjectURL(u);
+      
+      // Si ya existe una URL directa, usarla
+      if (it.url) {
+        const a = document.createElement('a');
+        a.href = it.url;
+        a.download = it.fileName || `${it.name}.${it.type === 'excel' ? 'xlsx' : 'csv'}`;
+        document.body.appendChild(a);
+        a.click();
+        a.remove();
+      } else {
+        // Si no, generar el export dinámicamente
+        const filtros = new URLSearchParams(it.filters || {}).toString();
+        const url = `/api/exports/${it.type === 'excel' ? 'excel' : 'csv'}?type=contacts${filtros ? '&' + filtros : ''}`;
+        const res = await fetch(url);
+        const blob = await res.blob();
+        const a = document.createElement('a');
+        const u = window.URL.createObjectURL(blob);
+        a.href = u;
+        a.download = it.fileName || `${it.name.replace(/\s+/g, '_')}.${it.type === 'excel' ? 'xlsx' : 'csv'}`;
+        document.body.appendChild(a);
+        a.click();
+        a.remove();
+        window.URL.revokeObjectURL(u);
+      }
     }
   };
 
@@ -94,7 +118,7 @@ export default function CentroDescargas() {
           {/* Filtros */}
           <div style={{ display: 'flex', gap: 12, marginBottom: 12 }}>
             <select value={range} onChange={(e) => setRange(e.target.value)}>
-              <option value="">Rango de fechas</option>
+              <option value="">Todos los rangos</option>
               <option value="today">Hoy</option>
               <option value="7">Últimos 7 días</option>
               <option value="30">Últimos 30 días</option>
@@ -146,7 +170,7 @@ export default function CentroDescargas() {
                     <td>
                       <input type="checkbox" checked={selected.has(it.id)} onChange={() => toggle(it.id)} />
                     </td>
-                    <td>{it.name}</td>
+                    <td>{it.fileName || it.name}</td>
                     <td>{it.type}</td>
                     <td>{it.status}</td>
                     <td>{it.requestedBy || 'N/A'}</td>
@@ -155,9 +179,13 @@ export default function CentroDescargas() {
                     <td>{new Date(it.expiresAt).toLocaleDateString()}</td>
                     <td>
                       <button className="btn" onClick={() => {
-                        const filtros = new URLSearchParams(it.filters || {}).toString();
-                        const url = `/api/exports/${it.type === 'excel' ? 'excel' : 'csv'}?type=contacts${filtros ? '&' + filtros : ''}`;
-                        window.open(url, '_blank');
+                        if (it.url) {
+                          window.open(it.url, '_blank');
+                        } else {
+                          const filtros = new URLSearchParams(it.filters || {}).toString();
+                          const url = `/api/exports/${it.type === 'excel' ? 'excel' : 'csv'}?type=contacts${filtros ? '&' + filtros : ''}`;
+                          window.open(url, '_blank');
+                        }
                       }}>Abrir</button>
                     </td>
                   </tr>
