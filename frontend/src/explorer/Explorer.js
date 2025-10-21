@@ -86,6 +86,12 @@ export default function Explorer() {
   const [sortKey, setSortKey] = useState(null);
   const [sortDir, setSortDir] = useState('asc');
 
+  const [page, setPage] = useState(1);
+  const [pageSize, setPageSize] = useState(6);
+
+  const [search, setSearch] = useState('');
+  const [searchDebounced, setSearchDebounced] = useState('');
+
   const topScrollRef = useRef(null);
   const bodyScrollRef = useRef(null);
   const topSpacerRef = useRef(null);
@@ -162,6 +168,45 @@ export default function Explorer() {
 
   const filteredRows = useMemo(() => applyFilterAND(rows, merged), [rows, merged]);
 
+  const displayedCols = useMemo(() => (
+    columns?.length ? columns : [
+      'age','job','marital','education','default','balance','housing','loan',
+      'contact','day','month','duration','campaign','pdays','previous','poutcome','y'
+    ]
+  ), [columns]);
+
+  function escapeRegExp(s){ return s.replace(/[.*+?^${}()|[\]\\]/g, '\\$&'); }
+
+  const searchRe = useMemo(() => {
+    if (!searchDebounced) return null;
+    try { return new RegExp(escapeRegExp(searchDebounced), 'i'); }
+    catch { return null; }
+  }, [searchDebounced]);
+
+  const searchReGlobal = useMemo(() => {
+    if (!searchDebounced) return null;
+    try { return new RegExp(`(${escapeRegExp(searchDebounced)})`, 'ig'); }
+    catch { return null; }
+  }, [searchDebounced]);
+
+  function rowMatches(r){
+    if (!searchRe) return false;
+    for (const c of displayedCols) {
+      const v = r?.[c];
+      if (v !== null && v !== undefined && searchRe.test(String(v))) return true;
+    }
+    return false;
+  }
+
+  function renderCell(val){
+    const s = String(val ?? '');
+    if (!searchReGlobal) return s;
+    const parts = s.split(searchReGlobal);
+    return parts.map((p, i) =>
+      i % 2 === 1 ? <mark key={i} className="hl">{p}</mark> : <span key={i}>{p}</span>
+    );
+  }
+
   const sortedRows = useMemo(() => {
     if (!sortKey) return filteredRows;
     const dir = sortDir === 'asc' ? 1 : -1;
@@ -201,6 +246,56 @@ export default function Explorer() {
       setSortDir('asc');
     }
   }
+
+  useEffect(() => {
+    setPage(1);
+  }, [merged, sortKey, sortDir, pageSize]);
+
+  useEffect(() => {
+    const id = setTimeout(() => setSearchDebounced(search.trim()), 200);
+    return () => clearTimeout(id);
+  }, [search]);
+
+  const totalPages = Math.max(1, Math.ceil(sortedRows.length / pageSize));
+  const currentPage = Math.min(page, totalPages);
+  const startIndex = (currentPage - 1) * pageSize;
+  const endIndex = Math.min(startIndex + pageSize, sortedRows.length);
+  const pagedRows = useMemo(() => sortedRows.slice(startIndex, endIndex), [sortedRows, startIndex, endIndex]);
+
+  function gotoPage(p) {
+    if (!Number.isFinite(p)) return;
+    setPage(Math.min(Math.max(1, p), totalPages));
+  }
+
+  function getPageList(total, current) {
+    const pages = [];
+    if (total <= 7) {
+      for (let i = 1; i <= total; i++) pages.push(i);
+      return pages;
+    }
+    if (current <= 4) {
+      pages.push(1, 2, 3, 4, 5, '…', total);
+      return pages;
+    }
+    if (current >= total - 3) {
+      pages.push(1, '…', total - 4, total - 3, total - 2, total - 1, total);
+      return pages;
+    }
+    pages.push(1, '…', current - 1, current, current + 1, '…', total);
+    return pages;
+  }
+
+  const matchCountTotal = useMemo(() => {
+    if (!searchRe) return sortedRows.length;
+    let c = 0; for (const r of sortedRows) if (rowMatches(r)) c++;
+    return c;
+  }, [sortedRows, searchRe]);
+
+  const matchCountPage = useMemo(() => {
+    if (!searchRe) return pagedRows.length;
+    let c = 0; for (const r of pagedRows) if (rowMatches(r)) c++;
+    return c;
+  }, [pagedRows, searchRe]);
 
   useEffect(() => {
     const top = topScrollRef.current;
@@ -279,10 +374,37 @@ export default function Explorer() {
             </aside>
 
             <section style={{ display: 'flex', flexDirection: 'column', gap: 12 }} className="minw0">
-              <div style={{ border: '1px solid #e5e7eb', borderRadius: 12, padding: 12, display: 'flex', gap: 24, alignItems: 'center' }}>
-                <div>Filas filtradas: <b>{filteredCount}</b></div>
-                <div>Tasa de Conversión: <b>{conversionRate}%</b></div>
-                <div>Contactos Totales: <b>{datasetTotal}</b></div>
+              <div
+                className="statsbar"
+                style={{
+                  border: '1px solid #e5e7eb',
+                  borderRadius: 12,
+                  padding: 12,
+                  display: 'flex',
+                  gap: 24,
+                  alignItems: 'center',
+                  justifyContent: 'space-between',
+                  flexWrap: 'wrap'
+                }}
+              >
+                <div className="statsbar__nums" style={{ display: 'flex', gap: 24, alignItems: 'center', flexWrap: 'wrap' }}>
+                  <div>Filas filtradas: <b>{filteredCount}</b></div>
+                  <div>Tasa de Conversión: <b>{conversionRate}%</b></div>
+                  <div>Contactos Totales: <b>{datasetTotal}</b></div>
+                  <div className="muted">Coincidencias: <b>{matchCountPage}</b> / <b>{matchCountTotal}</b></div>
+                </div>
+                <div className="searchbar">
+                  <input
+                    className="searchbox"
+                    value={search}
+                    onChange={e => setSearch(e.target.value)}
+                    placeholder="Buscar en la tabla…"
+                    aria-label="Buscar en la tabla"
+                  />
+                  {search && (
+                    <button className="clearsearch" onClick={() => setSearch('')} aria-label="Borrar búsqueda">×</button>
+                  )}
+                </div>
               </div>
 
               <div className="table-wrap">
@@ -293,10 +415,7 @@ export default function Explorer() {
                   <table className="data-table">
                     <thead>
                       <tr>
-                        {(columns?.length ? columns : [
-                          'age','job','marital','education','default','balance','housing','loan',
-                          'contact','day','month','duration','campaign','pdays','previous','poutcome','y'
-                        ]).map(h => (
+                        {displayedCols.map(h => (
                           <th
                             key={h}
                             onClick={() => handleSort(h)}
@@ -305,24 +424,25 @@ export default function Explorer() {
                           >
                             <span className="th-content">
                               {h}
-                              {sortKey === h && (
-                                <span className="sort-ind">{sortDir === 'asc' ? '▲' : '▼'}</span>
-                              )}
+                              {sortKey === h && <span className="sort-ind">{sortDir === 'asc' ? '▲' : '▼'}</span>}
                             </span>
                           </th>
                         ))}
                       </tr>
                     </thead>
                     <tbody>
-                      {sortedRows.length ? sortedRows.map((r, i) => (
-                        <tr key={i}>
-                          {(columns?.length ? columns : Object.keys(r)).map(c => (
-                            <td key={c}>{r[c]}</td>
-                          ))}
-                        </tr>
-                      )) : (
+                      {pagedRows.length ? pagedRows.map((r, i) => {
+                        const matched = rowMatches(r);
+                        return (
+                          <tr key={startIndex + i} className={matched && searchDebounced ? 'row-match' : ''}>
+                            {displayedCols.map(c => (
+                              <td key={c}>{renderCell(r[c])}</td>
+                            ))}
+                          </tr>
+                        );
+                      }) : (
                         <tr>
-                          <td colSpan={columns?.length || 18} style={{ padding: 24, textAlign: 'center', color: '#64748b' }}>
+                          <td colSpan={displayedCols.length} style={{ padding: 24, textAlign: 'center', color: '#64748b' }}>
                             Sin resultados
                           </td>
                         </tr>
@@ -332,7 +452,49 @@ export default function Explorer() {
                 </div>
               </div>
 
-              <div className="muted">Total: {filteredCount}</div>
+              <div className="pager">
+                <div className="pager__left">
+                  <label className="pager__rpp">
+                    <span>Filas por página</span>
+                    <select
+                      value={pageSize}
+                      onChange={e => setPageSize(Number(e.target.value))}
+                      aria-label="Filas por página"
+                    >
+                      {[5, 6, 10, 20, 50].map(n => <option key={n} value={n}>{n}</option>)}
+                    </select>
+                  </label>
+                </div>
+
+                <div className="pager__center" role="navigation" aria-label="Paginación">
+                  <button className="pager__btn" onClick={() => gotoPage(1)} disabled={currentPage === 1} aria-label="Primera página">«</button>
+                  <button className="pager__btn" onClick={() => gotoPage(currentPage - 1)} disabled={currentPage === 1} aria-label="Página anterior">‹</button>
+                  <div className="pager__nums">
+                    {getPageList(totalPages, currentPage).map((p, idx) =>
+                      p === '…' ? (
+                        <span key={`e${idx}`} className="pager__ellipsis">…</span>
+                      ) : (
+                        <button
+                          key={p}
+                          className={`pager__num ${p === currentPage ? 'is-active' : ''}`}
+                          onClick={() => gotoPage(p)}
+                          aria-current={p === currentPage ? 'page' : undefined}
+                        >
+                          {p}
+                        </button>
+                      )
+                    )}
+                  </div>
+                  <button className="pager__btn" onClick={() => gotoPage(currentPage + 1)} disabled={currentPage === totalPages} aria-label="Página siguiente">›</button>
+                  <button className="pager__btn" onClick={() => gotoPage(totalPages)} disabled={currentPage === totalPages} aria-label="Última página">»</button>
+                </div>
+
+                <div className="pager__right">
+                  <span className="pager__range">
+                    Mostrando <b>{sortedRows.length ? startIndex + 1 : 0}</b>–<b>{endIndex}</b> de <b>{sortedRows.length}</b>
+                  </span>
+                </div>
+              </div>
             </section>
           </section>
         </div>
