@@ -178,15 +178,6 @@ export default function CentroDescargas() {
                     <td>{it.sizeMB?.toFixed?.(1) || '2.0'} MB</td>
                     <td>{new Date(it.expiresAt).toLocaleDateString()}</td>
                     <td>
-                      <button className="btn" onClick={() => {
-                        if (it.url) {
-                          window.open(it.url, '_blank');
-                        } else {
-                          const filtros = new URLSearchParams(it.filters || {}).toString();
-                          const url = `/api/exports/${it.type === 'excel' ? 'excel' : 'csv'}?type=contacts${filtros ? '&' + filtros : ''}`;
-                          window.open(url, '_blank');
-                        }
-                      }}>Abrir</button>
                     </td>
                   </tr>
                 ))}
