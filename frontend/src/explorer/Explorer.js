@@ -68,6 +68,13 @@ function applyFilterAND(rows, filter) {
   });
 }
 
+function toNumberOrNull(v) {
+  if (v === null || v === undefined) return null;
+  const cleaned = String(v).replace(/\s+/g, '').replace(/,/g, '');
+  const n = Number(cleaned);
+  return Number.isFinite(n) ? n : null;
+}
+
 export default function Explorer() {
   const [presets, setPresets] = useState(() => listPresets());
   const [active, setActive] = useState({});
@@ -75,6 +82,9 @@ export default function Explorer() {
   const [dbFilters, setDbFilters] = useState([]);
   const [activeDb, setActiveDb] = useState({});
   const [loadingDb, setLoadingDb] = useState(false);
+
+  const [sortKey, setSortKey] = useState(null);
+  const [sortDir, setSortDir] = useState('asc');
 
   const topScrollRef = useRef(null);
   const bodyScrollRef = useRef(null);
@@ -151,10 +161,46 @@ export default function Explorer() {
   );
 
   const filteredRows = useMemo(() => applyFilterAND(rows, merged), [rows, merged]);
+
+  const sortedRows = useMemo(() => {
+    if (!sortKey) return filteredRows;
+    const dir = sortDir === 'asc' ? 1 : -1;
+    const out = [...filteredRows];
+    out.sort((a, b) => {
+      const va = a?.[sortKey];
+      const vb = b?.[sortKey];
+      const aNull = va === null || va === undefined || va === '';
+      const bNull = vb === null || vb === undefined || vb === '';
+      if (aNull && bNull) return 0;
+      if (aNull) return 1;
+      if (bNull) return -1;
+      const na = toNumberOrNull(va);
+      const nb = toNumberOrNull(vb);
+      if (na !== null && nb !== null) {
+        if (na < nb) return -1 * dir;
+        if (na > nb) return 1 * dir;
+        return 0;
+      }
+      const sa = String(va);
+      const sb = String(vb);
+      return sa.localeCompare(sb, undefined, { numeric: true, sensitivity: 'base' }) * dir;
+    });
+    return out;
+  }, [filteredRows, sortKey, sortDir]);
+
   const datasetTotal = rows.length;
   const filteredCount = filteredRows.length;
   const yes = filteredRows.filter(r => String(r.y) === 'yes').length;
   const conversionRate = filteredCount ? Math.round((yes * 10000) / filteredCount) / 100 : 0;
+
+  function handleSort(col) {
+    if (sortKey === col) {
+      setSortDir(prev => (prev === 'asc' ? 'desc' : 'asc'));
+    } else {
+      setSortKey(col);
+      setSortDir('asc');
+    }
+  }
 
   useEffect(() => {
     const top = topScrollRef.current;
@@ -251,12 +297,24 @@ export default function Explorer() {
                           'age','job','marital','education','default','balance','housing','loan',
                           'contact','day','month','duration','campaign','pdays','previous','poutcome','y'
                         ]).map(h => (
-                          <th key={h}>{h}</th>
+                          <th
+                            key={h}
+                            onClick={() => handleSort(h)}
+                            className={`th-sortable ${sortKey === h ? `sorted ${sortDir}` : ''}`}
+                            title="Ordenar"
+                          >
+                            <span className="th-content">
+                              {h}
+                              {sortKey === h && (
+                                <span className="sort-ind">{sortDir === 'asc' ? '▲' : '▼'}</span>
+                              )}
+                            </span>
+                          </th>
                         ))}
                       </tr>
                     </thead>
                     <tbody>
-                      {filteredRows.length ? filteredRows.map((r, i) => (
+                      {sortedRows.length ? sortedRows.map((r, i) => (
                         <tr key={i}>
                           {(columns?.length ? columns : Object.keys(r)).map(c => (
                             <td key={c}>{r[c]}</td>

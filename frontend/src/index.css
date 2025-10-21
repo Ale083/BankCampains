@@ -1,5 +1,4 @@
 *, *::before, *::after { box-sizing: border-box; }
-
 html, body, #root { max-width: 100%; overflow-x: hidden; }
 
 body {
@@ -11,9 +10,7 @@ body {
   -moz-osx-font-smoothing: grayscale;
 }
 
-code {
-  font-family: source-code-pro, Menlo, Monaco, Consolas, 'Courier New', monospace;
-}
+code { font-family: source-code-pro, Menlo, Monaco, Consolas, 'Courier New', monospace; }
 
 .page { background:#f8fafc; min-height:100vh; }
 
@@ -169,3 +166,10 @@ code {
   padding: 8px;
   border-top: 1px solid #f1f5f9;
 }
+
+.data-table thead th { cursor: pointer; }
+.data-table thead th.th-sortable:hover { background: #f1f5f9; }
+.th-content { display: inline-flex; align-items: center; gap: 6px; }
+.sort-ind { font-size: 11px; opacity: .75; line-height: 1; }
+th.sorted.asc,
+th.sorted.desc { color: #111827; }
