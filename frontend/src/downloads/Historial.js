@@ -174,17 +174,6 @@ export default function Historial() {
               <h5>Archivo de Exportación</h5>
               <div className="downloads-muted">Tipo: {selected.type?.toUpperCase?.()}</div>
               <div className="downloads-muted">Tamaño estimado: {selected.sizeMB?.toFixed?.(1) || '2.0'} MB</div>
-              <div style={{ marginTop: 12 }} className="inputs-inline">
-                <button className="btn" onClick={() => {
-                  const filtros = new URLSearchParams(selected.filters || {}).toString();
-                  const url = `/api/exports/${selected.type === 'excel' ? 'excel' : 'csv'}?type=contacts${filtros ? '&' + filtros : ''}`;
-                  window.open(url, '_blank');
-                }}>Abrir En</button>
-                <button className="btn" onClick={async () => {
-                  await fetch('/api/history/retry', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ ids: [selected.id] }) });
-                  load();
-                }}>Repetir</button>
-              </div>
             </div>
           ) : (
             <div className="downloads-muted">Selecciona una fila para ver detalles</div>
