@@ -1,9 +1,9 @@
-import React, { useEffect, useMemo, useState } from 'react';
+import React, { useEffect, useMemo, useState, useRef } from 'react';
 import Header from '../components/Header';
 import { listPresets, mergeFiltersAND, deletePreset } from '../filters/utils';
 import { useSessionData } from '../store/useSessionData';
 import { Link } from 'react-router-dom';
-import { listSavedFilters, deleteSavedFilter } from '../api/savedFilters'; 
+import { listSavedFilters, deleteSavedFilter } from '../api/savedFilters';
 
 function Chip({ label, active, onToggle, onDelete }) {
   return (
@@ -40,7 +40,7 @@ function Chip({ label, active, onToggle, onDelete }) {
           background: '#fff',
           color: '#6b7280',
           cursor: 'pointer',
-          fontWeight: 700,
+          fontWeight: 700
         }}
       >
         ×
@@ -70,11 +70,16 @@ function applyFilterAND(rows, filter) {
 
 export default function Explorer() {
   const [presets, setPresets] = useState(() => listPresets());
-  const [active, setActive] = useState({}); 
+  const [active, setActive] = useState({});
   const { rows, columns } = useSessionData();
-  const [dbFilters, setDbFilters] = useState([]);   
-  const [activeDb, setActiveDb] = useState({});     
+  const [dbFilters, setDbFilters] = useState([]);
+  const [activeDb, setActiveDb] = useState({});
   const [loadingDb, setLoadingDb] = useState(false);
+
+  const topScrollRef = useRef(null);
+  const bodyScrollRef = useRef(null);
+  const topSpacerRef = useRef(null);
+
   useEffect(() => { setActive({}); }, [rows]);
   useEffect(() => { setPresets(listPresets()); }, []);
 
@@ -97,11 +102,10 @@ export default function Explorer() {
   }, []);
 
   function toggle(id) { setActive(s => ({ ...s, [id]: !s[id] })); }
-  function toggleDb(id) { setActiveDb(s => ({ ...s, [id]: !s[id] })); } 
+  function toggleDb(id) { setActiveDb(s => ({ ...s, [id]: !s[id] })); }
 
   function handleDelete(id) {
     if (!window.confirm('¿Eliminar este preset?')) return;
-
     deletePreset(id);
     setPresets(listPresets());
     setActive(prev => {
@@ -152,89 +156,128 @@ export default function Explorer() {
   const yes = filteredRows.filter(r => String(r.y) === 'yes').length;
   const conversionRate = filteredCount ? Math.round((yes * 10000) / filteredCount) / 100 : 0;
 
+  useEffect(() => {
+    const top = topScrollRef.current;
+    const body = bodyScrollRef.current;
+    const spacer = topSpacerRef.current;
+    if (!top || !body || !spacer) return;
+    let lock = false;
+    const onTop = () => { if (lock) return; lock = true; body.scrollLeft = top.scrollLeft; lock = false; };
+    const onBody = () => { if (lock) return; lock = true; top.scrollLeft = body.scrollLeft; lock = false; };
+    top.addEventListener('scroll', onTop, { passive: true });
+    body.addEventListener('scroll', onBody, { passive: true });
+    const resize = () => {
+      spacer.style.width = body.scrollWidth + 'px';
+      top.scrollLeft = body.scrollLeft;
+    };
+    resize();
+    const ro = new ResizeObserver(resize);
+    ro.observe(body);
+    window.addEventListener('resize', resize);
+    return () => {
+      top.removeEventListener('scroll', onTop);
+      body.removeEventListener('scroll', onBody);
+      window.removeEventListener('resize', resize);
+      ro.disconnect();
+    };
+  }, [filteredRows, columns]);
+
   return (
     <div className="page">
       <Header title="Explorador Tabulador de Datos" />
       <main className="wrap" style={{ gap: 16 }}>
-        <section style={{ display: 'grid', gridTemplateColumns: '280px 1fr', gap: 16 }}>
-          <aside style={{ border: '1px solid #eee', borderRadius: 12, padding: 12 }}>
-            <h3 style={{ marginTop: 0 }}>Filtros (presets)</h3>
-            <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
-              {presets.length === 0 && <div className="muted">No hay presets. Crea uno en “Constructor de Filtros”.</div>}
-              {presets.map(p => (
-                <Chip
-                  key={p.id}
-                  label={p.name}
-                  active={!!active[p.id]}
-                  onToggle={() => toggle(p.id)}
-                  onDelete={() => handleDelete(p.id)}
-                />
-              ))}
-            </div>
-            <div style={{ marginTop: 12 }}>
-              <Link className="btn" to="/filtros">Crear/Cargar presets</Link>
-            </div>
-
-            <div style={{ marginTop: 16 }}>
-              <h4 style={{ margin: '12px 0 8px' }}>Mis filtros (BD)</h4>
-              <div className="muted" style={{ marginBottom: 8 }}>
-                {loadingDb ? 'Cargando…' : (dbFilters?.length ? 'Persistidos en la base de datos' : 'No hay filtros en BD')}
-              </div>
+        <div className="container-wide">
+          <section
+            style={{
+              display: 'grid',
+              gridTemplateColumns: 'minmax(260px, 300px) 1fr',
+              gap: 16,
+              width: '100%',
+              alignItems: 'start'
+            }}
+          >
+            <aside style={{ border: '1px solid #eee', borderRadius: 12, padding: 12 }}>
+              <h3 style={{ marginTop: 0 }}>Filtros (presets)</h3>
               <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
-                {dbFilters.map(f => (
+                {presets.length === 0 && <div className="muted">No hay presets. Crea uno en “Constructor de Filtros”.</div>}
+                {presets.map(p => (
                   <Chip
-                    key={f._id}
-                    label={f.name}
-                    active={!!activeDb[f._id]}
-                    onToggle={() => toggleDb(f._id)}
-                    onDelete={() => handleDeleteDb(f._id)}
+                    key={p.id}
+                    label={p.name}
+                    active={!!active[p.id]}
+                    onToggle={() => toggle(p.id)}
+                    onDelete={() => handleDelete(p.id)}
                   />
                 ))}
               </div>
-            </div>
-          </aside>
-
-          <section style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
-            <div style={{ border: '1px solid #e5e7eb', borderRadius: 12, padding: 12, display: 'flex', gap: 24, alignItems: 'center' }}>
-              <div>Filas filtradas: <b>{filteredCount}</b></div>
-              <div>Tasa de Conversión: <b>{conversionRate}%</b></div>
-              <div>Contactos Totales: <b>{datasetTotal}</b></div>
-            </div>
-
-            <div style={{ overflow: 'auto', border: '1px solid #e5e7eb', borderRadius: 12 }}>
-              <table className="data-table" style={{ width: '100%', borderCollapse: 'collapse' }}>
-                <thead style={{ background: '#f8fafc' }}>
-                  <tr>
-                    {(columns?.length ? columns : [
-                      'age','job','marital','education','default','balance','housing','loan',
-                      'contact','day','month','duration','campaign','pdays','previous','poutcome','y'
-                    ]).map(h => (
-                      <th key={h} style={{ textAlign: 'left', padding: 8, borderBottom: '1px solid #e5e7eb' }}>{h}</th>
-                    ))}
-                  </tr>
-                </thead>
-                <tbody>
-                  {filteredRows.map((r, i) => (
-                    <tr key={i}>
-                      {(columns?.length ? columns : Object.keys(r)).map(c => (
-                        <td key={c} style={{ padding: 8, borderTop: '1px solid #f1f5f9' }}>{r[c]}</td>
-                      ))}
-                    </tr>
+              <div style={{ marginTop: 12 }}>
+                <Link className="btn" to="/filtros">Crear/Cargar presets</Link>
+              </div>
+              <div style={{ marginTop: 16 }}>
+                <h4 style={{ margin: '12px 0 8px' }}>Mis filtros (BD)</h4>
+                <div className="muted" style={{ marginBottom: 8 }}>
+                  {loadingDb ? 'Cargando…' : (dbFilters?.length ? 'Persistidos en la base de datos' : 'No hay filtros en BD')}
+                </div>
+                <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+                  {dbFilters.map(f => (
+                    <Chip
+                      key={f._id}
+                      label={f.name}
+                      active={!!activeDb[f._id]}
+                      onToggle={() => toggleDb(f._id)}
+                      onDelete={() => handleDeleteDb(f._id)}
+                    />
                   ))}
-                  {filteredRows.length === 0 && (
-                    <tr>
-                      <td colSpan={columns?.length || 18} style={{ padding: 24, textAlign: 'center', color: '#64748b' }}>
-                        Sin resultados
-                      </td>
-                    </tr>
-                  )}
-                </tbody>
-              </table>
-            </div>
+                </div>
+              </div>
+            </aside>
 
-            <div className="muted">Total: {filteredCount}</div>
+            <section style={{ display: 'flex', flexDirection: 'column', gap: 12 }} className="minw0">
+              <div style={{ border: '1px solid #e5e7eb', borderRadius: 12, padding: 12, display: 'flex', gap: 24, alignItems: 'center' }}>
+                <div>Filas filtradas: <b>{filteredCount}</b></div>
+                <div>Tasa de Conversión: <b>{conversionRate}%</b></div>
+                <div>Contactos Totales: <b>{datasetTotal}</b></div>
+              </div>
+
+              <div className="table-wrap">
+                <div className="table-scroll-top" ref={topScrollRef}>
+                  <div className="spacer" ref={topSpacerRef} />
+                </div>
+                <div className="table-scroll-body" ref={bodyScrollRef}>
+                  <table className="data-table">
+                    <thead>
+                      <tr>
+                        {(columns?.length ? columns : [
+                          'age','job','marital','education','default','balance','housing','loan',
+                          'contact','day','month','duration','campaign','pdays','previous','poutcome','y'
+                        ]).map(h => (
+                          <th key={h}>{h}</th>
+                        ))}
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {filteredRows.length ? filteredRows.map((r, i) => (
+                        <tr key={i}>
+                          {(columns?.length ? columns : Object.keys(r)).map(c => (
+                            <td key={c}>{r[c]}</td>
+                          ))}
+                        </tr>
+                      )) : (
+                        <tr>
+                          <td colSpan={columns?.length || 18} style={{ padding: 24, textAlign: 'center', color: '#64748b' }}>
+                            Sin resultados
+                          </td>
+                        </tr>
+                      )}
+                    </tbody>
+                  </table>
+                </div>
+              </div>
+
+              <div className="muted">Total: {filteredCount}</div>
+            </section>
           </section>
-        </section>
+        </div>
       </main>
     </div>
   );
