@@ -32,18 +32,13 @@ export default function Historial() {
     try {
       const q = buildQuery({ ...rangeToDates });
       const r = await fetch('/api/history' + (q ? `?${q}` : ''));
-      
-      if (!r.ok) {
-        throw new Error(`HTTP error! status: ${r.status}`);
-      }
-      
+      if (!r.ok) throw new Error(`HTTP error! status: ${r.status}`);
       const json = await r.json();
-      // Solo mostrar consultas, no exports
+      
       const consultas = (json.items || []).filter(item => 
-        item.type === 'búsqueda' || item.type === 'consulta' || item.type === 'search'
+        item.type === 'búsqueda' || item.type === 'consulta' || item.type === 'search' || item.type === 'csv'
       );
       setItems(consultas);
-      
       if (!selectedId && consultas.length) {
         setSelectedId(consultas[0].id);
       }
