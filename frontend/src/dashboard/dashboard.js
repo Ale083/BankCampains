@@ -1,15 +1,27 @@
-import React, { useEffect, useState, useRef} from "react";
+import React, { useEffect, useMemo, useRef, useState } from "react";
 import "./styles.css";
-import { fetchKPIs, rentabilidad } from "./fetchKPIs";
-import { ChartBox, KPIBox } from "./componentesKPIs";
 import Header from "../components/Header";
 import { downloadPdf } from "./exportToPDF";
 import { exportToExcel } from "./exportToExcel";
+
+import { ChartBox, KPIBox } from "./componentesKPIs";
 import { FilterSummary } from "./sidebarFiltros";
 
+import { fetchKPIs, rentabilidad } from "./fetchKPIs";
+import { listPresets, mergeFiltersAND } from "../filters/utils";
+import { listSavedFilters } from "../api/savedFilters";
+import { mongoFilterToQuery } from "../filters/qsFromMongo";
+
 export default function Dashboard() {
-  const [G, setG] = useState(200); //ganancia por conversion
-  const [C, setC] = useState(0.5); //costo por contacto
+  const [G, setG] = useState(200);
+  const [C, setC] = useState(0.5);
+
+  const [presets, setPresets] = useState(() => listPresets());
+  const [active, setActive] = useState({});
+  const [dbFilters, setDbFilters] = useState([]);
+  const [activeDb, setActiveDb] = useState({});
+  const [loadingDb, setLoadingDb] = useState(false);
+
   const [rentabilidadProy, setRentabilidadProy] = useState(0);
   const [tasaConversion, setTasaConversion] = useState(0);
   const [duracionPromedio, setDuracionPromedio] = useState(0);
@@ -18,24 +30,6 @@ export default function Dashboard() {
   const [conversionPorEdad, setConversionPorEdad] = useState([]);
   const [impactoHistorial, setImpactoHistorial] = useState([]);
   const [indiceEficiencia, setIndiceEficiencia] = useState([]);
-
-  useEffect(() => {
-    fetchKPIs(G, C).then((data) => {
-      setRentabilidadProy(data.rentabilidad.profit);
-      setTasaConversion(data.tasaConversion.conversionRate);
-      setDuracionPromedio(data.avgDuration.avgDuration);
-      setContactosPorMes(data.contactosPorMes);
-      setTasaExitoCanal(data.tasaExitoPorCanal);
-      setConversionPorEdad(data.conversionPorEdad);
-      const historial = data.impactoHistorialPrevio.map( d => ({
-        poutcome: d.poutcome,
-        yes: (d.yes / d.total) * 100,
-        no: (d.no / d.total) * 100,
-      }))
-      setImpactoHistorial(historial);
-      setIndiceEficiencia(data.indiceEficienciaPorCampaña);
-    });
-  }, []);
 
   const chartRef = useRef(null);
   const RefTasaConversion = useRef(null);
@@ -47,6 +41,75 @@ export default function Dashboard() {
   const RefImpactoHistorial = useRef(null);
   const RefIndiceEficiencia = useRef(null);
   const RefFiltros = useRef(null);
+
+  useEffect(() => {
+    setPresets(listPresets());
+  }, []);
+
+  useEffect(() => {
+    (async () => {
+      try {
+        setLoadingDb(true);
+        const r = await listSavedFilters();
+        if (r?.ok) setDbFilters(r.data || []);
+        else if (Array.isArray(r)) setDbFilters(r);
+        else setDbFilters([]);
+      } catch (e) {
+        console.error("Error listSavedFilters:", e);
+        setDbFilters([]);
+      } finally {
+        setLoadingDb(false);
+      }
+    })();
+  }, []);
+
+  const selectedFilters = useMemo(
+    () => presets.filter(p => active[p.id]).map(p => p.filter),
+    [presets, active]
+  );
+  const selectedDb = useMemo(
+    () => dbFilters.filter(f => activeDb[f._id]).map(f => f.filter),
+    [dbFilters, activeDb]
+  );
+
+  const mergedFilterObj = useMemo(
+    () => mergeFiltersAND([...selectedFilters, ...selectedDb]),
+    [selectedFilters, selectedDb]
+  );
+  const filtersQS = useMemo(
+    () => mongoFilterToQuery(mergedFilterObj),
+    [mergedFilterObj]
+  );
+
+  useEffect(() => {
+    (async () => {
+      const data = await fetchKPIs(G, C, filtersQS);
+      setRentabilidadProy(data.rentabilidad.profit);
+      setTasaConversion(data.tasaConversion.conversionRate);
+      setDuracionPromedio(data.avgDuration.avgDuration);
+      setContactosPorMes(data.contactosPorMes);
+      setTasaExitoCanal(data.tasaExitoPorCanal);
+      setConversionPorEdad(data.conversionPorEdad);
+
+      const historial = (data.impactoHistorialPrevio || []).map(d => ({
+        poutcome: d.poutcome,
+        yes: (d.yes / d.total) * 100,
+        no:  (d.no  / d.total) * 100,
+      }));
+      setImpactoHistorial(historial);
+
+      setIndiceEficiencia(data.indiceEficienciaPorCampaña);
+    })().catch(err => console.error("fetchKPIs error:", err));
+  }, [G, C, filtersQS]);
+
+  const toggle = (id) => setActive(s => ({ ...s, [id]: !s[id] }));
+  const toggleDb = (id) => setActiveDb(s => ({ ...s, [id]: !s[id] }));
+
+  const queryObjForSummary = useMemo(
+    () => Object.fromEntries(new URLSearchParams(filtersQS)),
+    [filtersQS]
+  );
+
   return (
     <div className="page">
       <Header title="Dashboard General" />
@@ -54,39 +117,66 @@ export default function Dashboard() {
       <main className="wrap" ref={chartRef}>
         {/* izquierda */}
         <aside className="sidebar">
-           <FilterSummary query={(Object.fromEntries(new URLSearchParams(localStorage.getItem("filtros"))))} ref={RefFiltros} />
+          <div className="muted" style={{ marginBottom: 8 }}>
+            {loadingDb ? "Cargando filtros de BD…" : null}
+          </div>
+
+          <FilterSummary
+            ref={RefFiltros}
+            query={queryObjForSummary}
+            presets={presets}
+            active={active}
+            onToggle={toggle}
+            dbFilters={dbFilters}
+            activeDb={activeDb}
+            onToggleDb={toggleDb}
+          />
         </aside>
-        
+
         <section className="content">
           <div className="kpis">
             <KPIBox ref={RefTasaConversion} title="Tasa de Conversión" value={`${tasaConversion}%`} />
             <KPIBox ref={RefDuracionPromedio} title="Duración Promedio" value={`${duracionPromedio} min`} />
             <KPIBox ref={RefRentabilidadProy} title="Rentabilidad Proyectada" value={rentabilidadProy}>
               <div className="note">Parámetros (G y C)</div>
-                <div>
-                  <input type="number" min="20" max="1000" step="10" value={G} required onChange={
-                      (e) => setG(Number(e.target.value))
-                    }
-                  />
-                  <input type="number" min="0.1" max="3.0" step="0.05" value={C} required onChange={
-                      (e) => setC(Number(e.target.value))
-                    }
-                  />
-                </div>
-                <button onClick={async () => {
-                  await rentabilidad(G, C).then(data => setRentabilidadProy(data.profit))
-                }}>Actualizar</button>
+              <div>
+                <input
+                  type="number" min="20" max="1000" step="10" value={G} required
+                  onChange={e => setG(Number(e.target.value))}
+                />
+                <input
+                  type="number" min="0.1" max="3.0" step="0.05" value={C} required
+                  onChange={e => setC(Number(e.target.value))}
+                />
+              </div>
+              <button
+                onClick={async () => {
+                  const data = await rentabilidad(G, C, filtersQS);
+                  setRentabilidadProy(data.profit);
+                }}
+              >
+                Actualizar
+              </button>
             </KPIBox>
           </div>
 
           <div className="actions">
             <button className="btn" onClick={() => downloadPdf(chartRef)}>Exportar PDF</button>
-            <button className="btn" onClick={() => 
-              exportToExcel({
-                charts: [RefTasaConversion, RefDuracionPromedio, RefRentabilidadProy, RefContactosPorMes, RefTasaExitoCanal, RefConversionPorEdad, RefImpactoHistorial, RefIndiceEficiencia, RefFiltros],
-                filename: "Dashboard.xlsx",
-              })
-            }>Exportar Excel</button>
+            <button
+              className="btn"
+              onClick={() =>
+                exportToExcel({
+                  charts: [
+                    RefTasaConversion, RefDuracionPromedio, RefRentabilidadProy,
+                    RefContactosPorMes, RefTasaExitoCanal, RefConversionPorEdad,
+                    RefImpactoHistorial, RefIndiceEficiencia, RefFiltros
+                  ],
+                  filename: "Dashboard.xlsx",
+                })
+              }
+            >
+              Exportar Excel
+            </button>
           </div>
 
           <div className="charts">
@@ -125,7 +215,7 @@ export default function Dashboard() {
                 { key: "no",  name: "No aceptó (no)", color: "#ef4444", stackId: "a" },
               ]}
             />
-              
+
             <ChartBox
               ref={RefIndiceEficiencia}
               title="Índice de eficiencia por campaña"
@@ -133,7 +223,6 @@ export default function Dashboard() {
               xKey="campaignCount"
               bars={[{ key: "efficiency" }]}
             />
-            
           </div>
         </section>
       </main>
