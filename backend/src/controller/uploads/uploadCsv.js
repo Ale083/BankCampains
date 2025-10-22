@@ -4,6 +4,7 @@ const express = require('express');
 const multer = require('multer');
 const csv = require('csv-parser');
 const Contact = require('../../model/contact');
+const History = require('../../model/history');
 
 const router = express.Router();
 
@@ -341,7 +342,6 @@ const uploadCsv = async (req, res) => {
               insertedRecords: insertedRecords.length,
               rejectedRecords: rejectedRecords.length,
               dbErrors: dbErrors.length,
-     
               // esto que falta es para el reporte
               columns,
               nullsByColumn,
@@ -350,20 +350,36 @@ const uploadCsv = async (req, res) => {
               qualityScore
             }
           };
-          
+
+          // evento en history 
+          try {
+            await History.create({
+              name: (req.file && req.file.originalname) ? req.file.originalname : 'carga.csv',
+              type: 'csv',
+              description: 'Carga de CSV de campañas',
+              filtersIncluded: [],
+              resultsCount: insertedRecords.length,
+              sizeMB: req.file ? +(req.file.size / (1024 * 1024)).toFixed(2) : 0,
+              status: insertedRecords.length > 0 ? 'success' : 'failed',
+              filters: {},
+              requestedBy: (req.user && (req.user.nombre || req.user.userId)) ? (req.user.nombre || req.user.userId) : 'admin',
+              notes: '',
+              summary: {
+                totalRecords: rowIndex,
+                inserted: insertedRecords.length,
+                rejected: rejectedRecords.length,
+                nullPercent,
+                percentRejected,
+                qualityScore,
+                columns
+              }
+            });
+          } catch (e) {
+            console.error('No se pudo registrar en history:', e);
+          }
+
          
-          if (rejectedRecords.length > 0) {
-            response.rejectedRecords = rejectedRecords;
-          }
-          
-          
-          if (dbErrors.length > 0) {
-            response.databaseErrors = dbErrors;
-          }
-          
-          
           if (insertedRecords.length === 0 && validContacts.length > 0) {
-            
             res.status(500).json({
               ...response,
               error: 'No se pudo insertar ningún registro válido en la base de datos'
