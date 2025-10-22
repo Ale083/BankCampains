@@ -5,24 +5,39 @@ const Header = ({ title = "Carga de datos", showNavbar = true }) => {
   const [hasValidData, setHasValidData] = useState(false);
   const [hasHistoryData, setHasHistoryData] = useState(false);
   const [isLoading, setIsLoading] = useState(true);
+  const [disabledByClear, setDisabledByClear] = useState(() => !!localStorage.getItem('dataCleared'));
   const location = useLocation();
   const navigate = useNavigate();
 
-
+  // Ocultar navbar en reporte
   const showNav = Boolean(showNavbar) && location.pathname !== '/reporte';
 
   useEffect(() => {
     const checkDataAvailability = async () => {
       try {
-        // Verificar si hay contactos en la base de datos (para Dashboard)
         const contactsResponse = await fetch('/api/contacts/exists');
         const contactsData = await contactsResponse.json();
-        setHasValidData(contactsData.exists);
+        const exists = !!contactsData.exists;
 
-        // Verificar si hay al menos una carga en el historial (para Descargas)
+        if (exists) {
+          // Ya hay datos: quitar cualquier bloqueo temporal
+          if (localStorage.getItem('dataCleared')) {
+            localStorage.removeItem('dataCleared');
+            localStorage.removeItem('dataClearedAt');
+          }
+          setDisabledByClear(false);
+        } else {
+          // No hay datos: mantener bloqueo solo si se inició limpieza
+          const cleared = !!localStorage.getItem('dataCleared');
+          setDisabledByClear(cleared);
+        }
+
+        setHasValidData(exists);
+
+        // (Opcional) historial
         const historyResponse = await fetch('/api/history');
         const historyData = await historyResponse.json();
-        setHasHistoryData(historyData.items && historyData.items.length > 0);
+        setHasHistoryData(!!(historyData.items && historyData.items.length > 0));
       } catch (error) {
         console.error('Error checking data availability:', error);
         setHasValidData(false);
@@ -33,7 +48,73 @@ const Header = ({ title = "Carga de datos", showNavbar = true }) => {
     };
 
     checkDataAvailability();
-  }, [location.pathname]); // Re-check when route changes
+  }, [location.pathname]);
+
+  // Al detectar subida exitosa, quitar bandera y re-habilitar
+  useEffect(() => {
+    const id = setInterval(async () => {
+      const uploaded = localStorage.getItem('dataUploaded');
+      if (uploaded) {
+        localStorage.removeItem('dataUploaded');
+        localStorage.removeItem('dataCleared');
+        localStorage.removeItem('dataClearedAt');
+        setDisabledByClear(false);
+        try {
+          const res = await fetch('/api/contacts/exists');
+          const json = await res.json();
+          setHasValidData(!!json.exists);
+        } catch {
+          setHasValidData(true);
+        }
+      }
+    }, 1000);
+    return () => clearInterval(id);
+  }, []);
+
+  // Mientras dataCleared esté activa, hacer polling para desbloquear cuando termine el borrado
+  useEffect(() => {
+    if (!disabledByClear) return;
+
+    let cancelled = false;
+    const poll = async () => {
+      try {
+        const res = await fetch('/api/contacts/exists');
+        const json = await res.json();
+        const exists = !!json.exists;
+        const startedAt = parseInt(localStorage.getItem('dataClearedAt') || '0', 10);
+        const ageMs = Date.now() - startedAt;
+        // Desbloquear si ya no hay datos (borrado completado) o si pasó un TTL de seguridad
+        if (!exists || ageMs > 8000) {
+          localStorage.removeItem('dataCleared');
+          localStorage.removeItem('dataClearedAt');
+          if (!cancelled) {
+            setDisabledByClear(false);
+            setHasValidData(exists);
+          }
+          return; // terminar polling
+        }
+        if (!cancelled) setHasValidData(exists);
+        setTimeout(poll, 1000);
+      } catch (e) {
+        // reintentar suave
+        if (!cancelled) setTimeout(poll, 1500);
+      }
+    };
+
+    poll();
+    return () => { cancelled = true; };
+  }, [disabledByClear]);
+
+  // Helper para iniciales seguras
+  const initials = (() => {
+    try {
+      const s = JSON.parse(localStorage.getItem('session'));
+      const n = (s?.nombre || 'Invitado').trim();
+      return n.split(/\s+/).map(w => w[0]).slice(0, 2).join('').toUpperCase();
+    } catch {
+      return 'IN';
+    }
+  })();
 
   return (
     <>
@@ -57,8 +138,8 @@ const Header = ({ title = "Carga de datos", showNavbar = true }) => {
           color: '#1f2937',
           fontWeight: 700
         }}>
-          {JSON.parse(localStorage.getItem('session')).nombre.trim().split(/\s+/).map(w => w[0]).slice(0,2).join('').toUpperCase()} 
-        </div> {/* Primeras letras */}
+          {initials}
+        </div>
 
         <h1 style={{
           position: 'absolute',
@@ -73,6 +154,7 @@ const Header = ({ title = "Carga de datos", showNavbar = true }) => {
         </h1>
         <div style={{ width: 36 }}></div>
       </div>
+
       <div style={{
         display: 'flex',
         alignItems: 'center',
@@ -82,15 +164,9 @@ const Header = ({ title = "Carga de datos", showNavbar = true }) => {
         color: '#fff',
         borderBottom: '1px solid #e5e7eb'
       }}>
-        <h2 style={{
-          margin: 0,
-          fontSize: 18,
-          fontWeight: 600
-        }}>
-          {title}
-        </h2>
+        <h2 style={{ margin: 0, fontSize: 18, fontWeight: 600 }}>{title}</h2>
       </div>
-      {/* Nav bar */}
+
       {showNav && (
         <div style={{
           display: 'flex',
@@ -106,19 +182,18 @@ const Header = ({ title = "Carga de datos", showNavbar = true }) => {
               Verificando datos...
             </div>
           )}
-         
-          {[
-            { to: '/', label: 'Carga de Datos', enabled: true, requirement: '' },
-            { to: '/dashboardKPIs', label: 'Dashboard', enabled: hasValidData, requirement: 'CSV válido' },
+
+          {[ 
+            { to: '/', label: 'Carga de Datos', enabled: true, requirement: '', clearData: true },
+            { to: '/dashboardKPIs', label: 'Dashboard', enabled: hasValidData && !disabledByClear, requirement: 'CSV válido' },
+            { to: '/explorador', label: 'Explorador', enabled: hasValidData && !disabledByClear, requirement: 'CSV válido' },
             { to: '/historial', label: 'Historial', enabled: true, requirement: '' },
           ].map(link => (
             <NavLink
               key={link.to}
               to={link.enabled ? link.to : '#'}
               style={({ isActive }) => ({
-                color: link.enabled 
-                  ? (isActive ? '#1f2937' : '#374151')
-                  : '#9ca3af',
+                color: link.enabled ? (isActive ? '#1f2937' : '#374151') : '#9ca3af',
                 textDecoration: isActive && link.enabled ? 'underline' : 'none',
                 fontWeight: isActive && link.enabled ? 700 : 500,
                 padding: '6px 8px',
@@ -132,28 +207,32 @@ const Header = ({ title = "Carga de datos", showNavbar = true }) => {
                   e.preventDefault();
                   if (!isLoading) {
                     let message = `No se puede acceder a ${link.label}.`;
-                    if (link.requirement) {
-                      message += `\n\nSe requiere: ${link.requirement}`;
-                    }
-                    if (link.to === '/dashboardKPIs') {
+                    if (link.requirement) message += `\n\nSe requiere: ${link.requirement}`;
+                    if (link.to === '/dashboardKPIs' || link.to === '/explorador') {
                       message += '\n\nVaya a "Carga de Datos" para subir un archivo CSV con datos válidos.';
-                    } else if (link.to === '/descargas') {
-                      message += '\n\nPrimero debe realizar al menos una carga de datos.';
                     }
                     alert(message);
                   }
+                } else if (link.clearData) {
+                  // Limpiar inmediatamente: bloquear y navegar, y limpiar en background
+                  e.preventDefault();
+                  if (hasValidData && !disabledByClear) {
+                    const confirmed = window.confirm('Si cargas otro archivo se perderán los datos actuales. ¿Deseas continuar?');
+                    if (!confirmed) return;
+                  }
+                  localStorage.setItem('dataCleared', '1');
+                  localStorage.setItem('dataClearedAt', String(Date.now()));
+                  setDisabledByClear(true);
+                  setHasValidData(false);
+                  navigate('/');
+                  fetch('/api/contacts/clear', { method: 'DELETE' }).catch(() => {});
                 }
               }}
               title={link.enabled ? '' : `Requiere ${link.requirement || 'datos'}`}
             >
               {link.label}
               {!link.enabled && !isLoading && (
-                <span style={{ 
-                  marginLeft: 4, 
-                  fontSize: 10, 
-                  verticalAlign: 'super',
-                  color: '#ef4444'
-                }}>🔒</span>
+                <span style={{ marginLeft: 4, fontSize: 10, verticalAlign: 'super', color: '#ef4444' }}>🔒</span>
               )}
             </NavLink>
           ))}

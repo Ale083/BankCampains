@@ -158,7 +158,7 @@ export default function ReporteCalidad() {
           )}
         </div>
         
-        <button className="fab" onClick={goToExplorer}>Explorador →</button>
+        
 
 
        
