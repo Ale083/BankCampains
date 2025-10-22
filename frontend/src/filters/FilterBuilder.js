@@ -1,4 +1,4 @@
-import React, { useMemo, useState } from 'react';
+import React, { useMemo, useState, useEffect } from 'react';
 import Header from '../components/Header';
 import { useNavigate } from 'react-router-dom';
 import { createSavedFilter } from '../api/savedFilters';
@@ -154,6 +154,94 @@ function RangeField({ label, value, onChange, placeholder, tooltip }) {
 
 const numOrNull = (v) => (v === '' || v === null || v === undefined ? null : Number(v));
 
+function Toast({ kind = 'warning', message, onClose }) {
+  useEffect(() => {
+    if (!message) return;
+    const t = setTimeout(() => onClose?.(), 2400);
+    return () => clearTimeout(t);
+  }, [message, onClose]);
+
+  if (!message) return null;
+  const palette = {
+    warning: { bg: '#fffbeb', bd: '#f59e0b', fg: '#92400e', dot: '#f59e0b' },
+    success: { bg: '#ecfdf5', bd: '#10b981', fg: '#065f46', dot: '#10b981' },
+    danger:  { bg: '#fef2f2', bd: '#ef4444', fg: '#7f1d1d', dot: '#ef4444' },
+    info:    { bg: '#eff6ff', bd: '#3b82f6', fg: '#1e3a8a', dot: '#3b82f6' },
+  }[kind];
+
+  return (
+    <div
+      role="status"
+      aria-live="assertive"
+      style={{
+        position: 'fixed',
+        bottom: 16,
+        left: '50%',
+        transform: 'translateX(-50%)',
+        display: 'flex',
+        alignItems: 'flex-start',
+        gap: 10,
+        padding: '10px 14px',
+        background: palette.bg,
+        border: `1px solid ${palette.bd}`,
+        color: palette.fg,
+        borderRadius: 10,
+        boxShadow: '0 6px 18px rgba(0,0,0,.08)',
+        zIndex: 9999,
+        maxWidth: '90vw',
+      }}
+      onClick={onClose}
+    >
+      <div
+        aria-hidden="true"
+        style={{
+          width: 10, height: 10, borderRadius: 9999, marginTop: 6,
+          background: palette.dot
+        }}
+      />
+      <div style={{ fontSize: 14 }}>{message}</div>
+    </div>
+  );
+}
+
+function EmptyFilterNotice({ criteriaCount }) {
+  return (
+    <div
+      id="empty-filter-notice"
+      role="status"
+      aria-live="polite"
+      style={{
+        display: 'flex',
+        alignItems: 'flex-start',
+        gap: 12,
+        padding: '12px 14px',
+        border: '1px solid #f59e0b',
+        background: '#fffbeb',
+        color: '#92400e',
+        borderRadius: 10,
+        boxShadow: '0 1px 2px rgba(0,0,0,0.04)',
+      }}
+    >
+      <div
+        aria-hidden="true"
+        style={{
+          minWidth: 20, minHeight: 20, borderRadius: 999,
+          background: '#f59e0b', color: 'white', display: 'grid', placeItems: 'center',
+          fontWeight: 700, fontSize: 12, lineHeight: '20px'
+        }}
+      >!</div>
+      <div>
+        <strong>Tu filtro está vacío.</strong>{' '}
+        Agrega al menos un criterio (checkbox o rango) para habilitar <em>Guardar</em> y <em>Aplicar</em>.
+        <div style={{ marginTop: 6, fontSize: 13, color: '#92400e' }}>
+          Sugerencias: selecciona <code>Mes</code> (p. ej. <code>may</code>), marca <code>Hipoteca = sí</code>,
+          o define <code>Edad</code> entre <code>25—40</code>. Actualmente: {criteriaCount} criterios.
+        </div>
+      </div>
+    </div>
+  );
+}
+
 export default function FilterBuilder() {
   const navigate = useNavigate();
 
@@ -183,6 +271,9 @@ export default function FilterBuilder() {
 
   const [presetName, setPresetName] = useState('');
   const [isSaving, setIsSaving] = useState(false);
+
+  const [toast, setToast] = useState({ message: '', kind: 'warning' });
+  const notify = (message, kind = 'warning') => setToast({ message, kind });
 
   const toggle = (setter) => (val) => setter(prev => {
     const s = new Set(prev);
@@ -219,8 +310,13 @@ export default function FilterBuilder() {
     addRange('nr_employed', nrEmp);
 
     return out;
-  }, [job, marital, education, def, housing, loan, contact, month, poutcome, target,
-      age, balance, day, duration, campaign, pdays, previous, empVar, cpi, cci, euribor, nrEmp]);
+  }, [
+    job, marital, education, def, housing, loan, contact, month, poutcome, target,
+    age, balance, day, duration, campaign, pdays, previous, empVar, cpi, cci, euribor, nrEmp
+  ]);
+
+  const criteriaCount = useMemo(() => Object.keys(filter).length, [filter]);
+  const isFilterEmpty = criteriaCount === 0;
 
   function resetAll() {
     setJob(new Set()); setMarital(new Set()); setEducation(new Set());
@@ -233,31 +329,41 @@ export default function FilterBuilder() {
   }
 
   async function handleSavePreset() {
+    if (isFilterEmpty) {
+      notify('Agrega al menos un criterio antes de guardar el preset.', 'warning');
+      return;
+    }
     const name = (presetName || '').trim() || `Preset ${new Date().toLocaleString()}`;
     try {
       setIsSaving(true);
       const saved = await createSavedFilter({ name, filter });
       console.log('Preset guardado:', saved);
       setPresetName('');
-      alert(`Preset guardado${saved?.name ? `: ${saved.name}` : ''}.`);
+      notify('Preset guardado correctamente.', 'success');
     } catch (err) {
       console.error('Error al guardar preset:', err);
-      alert('No se pudo guardar el preset. Verifica tu sesión o la conexión.');
+      notify('No se pudo guardar el preset. Verifica tu sesión o la conexión.', 'danger');
     } finally {
       setIsSaving(false);
     }
   }
 
   async function applyAndBack() {
+    if (isFilterEmpty) {
+      notify('Agrega al menos un criterio antes de aplicar.', 'warning');
+      return;
+    }
     const name = (presetName || '').trim() || `Preset ${new Date().toLocaleString()}`;
     try {
       setIsSaving(true);
       await createSavedFilter({ name, filter });
+      notify('Preset aplicado.', 'success');
+      navigate('/explorador');
     } catch (err) {
       console.error('Error al guardar y volver:', err);
+      notify('Error al aplicar el preset.', 'danger');
     } finally {
       setIsSaving(false);
-      navigate('/explorador');
     }
   }
 
@@ -267,6 +373,13 @@ export default function FilterBuilder() {
 
       <main className="wrap">
         <div className="builder">
+
+          {isFilterEmpty && (
+            <div style={{ marginBottom: 16 }}>
+              <EmptyFilterNotice criteriaCount={criteriaCount} />
+            </div>
+          )}
+
           <div className="filters-stack">
             <Section title={LABEL.demografia}>
               <CheckGroup label={LABEL.job} options={JOBS} valueSet={job} onToggle={toggle(setJob)} />
@@ -318,7 +431,7 @@ export default function FilterBuilder() {
             </Section>
           </div>
 
-          <div className="toolbar toolbar--bottom">
+          <div className="toolbar toolbar--bottom" aria-describedby={isFilterEmpty ? 'empty-filter-notice' : undefined}>
             <input
               type="text"
               placeholder="Nombre del preset"
@@ -328,18 +441,46 @@ export default function FilterBuilder() {
               disabled={isSaving}
             />
             <div className="toolbar__buttons">
-              <button className="btn" onClick={handleSavePreset} disabled={isSaving}>
+              <button
+                className="btn"
+                onClick={handleSavePreset}
+                aria-disabled={isSaving || isFilterEmpty}
+                tabIndex={isSaving || isFilterEmpty ? -1 : 0}
+                title={isFilterEmpty ? 'Agrega al menos un criterio' : undefined}
+                style={{
+                  opacity: isSaving || isFilterEmpty ? 0.5 : 1,
+                  cursor: isSaving || isFilterEmpty ? 'not-allowed' : 'pointer'
+                }}
+              >
                 {isSaving ? 'Guardando…' : 'Guardar preset'}
               </button>
-              <button className="btn" onClick={applyAndBack} disabled={isSaving}>
+
+              <button
+                className="btn"
+                onClick={applyAndBack}
+                aria-disabled={isSaving || isFilterEmpty}
+                tabIndex={isSaving || isFilterEmpty ? -1 : 0}
+                title={isFilterEmpty ? 'Agrega al menos un criterio' : undefined}
+                style={{
+                  opacity: isSaving || isFilterEmpty ? 0.5 : 1,
+                  cursor: isSaving || isFilterEmpty ? 'not-allowed' : 'pointer'
+                }}
+              >
                 {isSaving ? 'Aplicando…' : 'Aplicar y volver'}
               </button>
+
               <button className="btn btn--secondary" onClick={resetAll} disabled={isSaving}>Restablecer</button>
               <button className="btn btn--ghost" onClick={() => navigate('/explorador')} disabled={isSaving}>Volver al Explorador</button>
             </div>
           </div>
         </div>
       </main>
+
+      <Toast
+        kind={toast.kind}
+        message={toast.message}
+        onClose={() => setToast({ message: '', kind: 'warning' })}
+      />
     </div>
   );
 }
