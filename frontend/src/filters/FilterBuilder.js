@@ -1,6 +1,6 @@
 import React, { useMemo, useState, useEffect } from 'react';
 import Header from '../components/Header';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useLocation } from 'react-router-dom';
 import { createSavedFilter } from '../api/savedFilters';
 
 const LABEL = {
@@ -10,7 +10,6 @@ const LABEL = {
   historial: 'Historial de campañas',
   macro: 'Contexto macroeconómico',
   objetivo: 'Objetivo',
-
   age: 'Edad',
   job: 'Ocupación',
   marital: 'Estado civil',
@@ -244,6 +243,9 @@ function EmptyFilterNotice({ criteriaCount }) {
 
 export default function FilterBuilder() {
   const navigate = useNavigate();
+  const location = useLocation();
+  const returnTo = location.state?.returnTo || '/explorador';
+  const backLabel = returnTo === '/dashboardKPIs' ? 'Volver al Dashboard' : 'Volver al Explorador';
 
   const [job, setJob] = useState(new Set());
   const [marital, setMarital] = useState(new Set());
@@ -358,7 +360,7 @@ export default function FilterBuilder() {
       setIsSaving(true);
       await createSavedFilter({ name, filter });
       notify('Preset aplicado.', 'success');
-      navigate('/explorador');
+      navigate(returnTo);
     } catch (err) {
       console.error('Error al guardar y volver:', err);
       notify('Error al aplicar el preset.', 'danger');
@@ -470,7 +472,7 @@ export default function FilterBuilder() {
               </button>
 
               <button className="btn btn--secondary" onClick={resetAll} disabled={isSaving}>Restablecer</button>
-              <button className="btn btn--ghost" onClick={() => navigate('/explorador')} disabled={isSaving}>Volver al Explorador</button>
+              <button className="btn btn--ghost" onClick={() => navigate(returnTo)} disabled={isSaving}>{backLabel}</button>
             </div>
           </div>
         </div>
