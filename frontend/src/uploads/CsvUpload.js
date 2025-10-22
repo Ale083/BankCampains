@@ -188,7 +188,7 @@ export default function CsvUpload({ onNext }) {
 
         {csvData.length > 0 && (
           <div className="preview-section">
-            <h4>Vista Previa (local, antes de subir)</h4>
+            <h4>Vista Previa </h4>
             <div className="table-container">
               <table className="data-table">
                 <thead>

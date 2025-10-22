@@ -58,8 +58,8 @@ export default function App() {
         <Route path="/reporte" element={<ReporteCalidad />} />
         <Route path="/filtros" element={<FilterBuilder />} />
         <Route path="/explorador" element={<Explorer />} />
-        <Route path="*" element={<Navigate to="/" replace />} />
         <Route path="/historial" element={<Historial />} />
+        <Route path="*" element={<Navigate to={'/'} replace />} />
       </Routes>
     </div>
   );
