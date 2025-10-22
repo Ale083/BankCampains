@@ -80,7 +80,6 @@ export default function Dashboard() {
           </div>
 
           <div className="actions">
-            <button className="btn" onClick={console.log("TODO")}>Volver</button>
             <button className="btn" onClick={() => downloadPdf(chartRef)}>Exportar PDF</button>
             <button className="btn" onClick={() => 
               exportToExcel({
