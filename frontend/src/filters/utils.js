@@ -74,6 +74,6 @@ export function writeQSForDashboard(filter = {}, { persist = false } = {}) {
     if (cond?.$lte !== undefined) params.set(`${field}Max`, String(cond.$lte));
   }
   const qs = params.toString();
-  try { localStorage.setItem('filters', qs); } catch {}
+  try { localStorage.setItem('filters', qs); console.log(qs); } catch {}
   return qs;
 }
