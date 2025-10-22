@@ -4,6 +4,7 @@ import { listPresets, mergeFiltersAND, deletePreset } from '../filters/utils';
 import { useSessionData } from '../store/useSessionData';
 import { Link } from 'react-router-dom';
 import { listSavedFilters, deleteSavedFilter } from '../api/savedFilters';
+import { exportRowsToCSV, exportRowsToXLSX } from '../utils/exporters';
 
 function Chip({ label, active, onToggle, onDelete }) {
   return (
@@ -316,6 +317,18 @@ export default function Explorer() {
     };
   }, [visibleRows, displayedCols]);
 
+  function handleExportXLSX() {
+    const rowsToExport = visibleRows;
+    const fname = `explorer_${new Date().toISOString().slice(0,19).replace(/[:T]/g,'-')}.xlsx`;
+    exportRowsToXLSX({ rows: rowsToExport, cols: displayedCols, filename: fname, sheetName: 'Dataset' });
+  }
+
+  function handleExportCSV() {
+    const rowsToExport = visibleRows; 
+    const fname = `explorer_${new Date().toISOString().slice(0,19).replace(/[:T]/g,'-')}.csv`;
+    exportRowsToCSV({ rows: rowsToExport, cols: displayedCols, filename: fname });
+  }
+
   return (
     <div className="page">
       <Header title="Explorador Tabulador de Datos" showNavbar = {true}/>
@@ -386,17 +399,30 @@ export default function Explorer() {
                   <div>Contactos Totales: <b>{datasetTotal}</b></div>
                   <div>Coincidencias de búsqueda: <b>{visibleRows.length}</b></div>
                 </div>
-                <div className="searchbar">
-                  <input
-                    className="searchbox"
-                    value={search}
-                    onChange={e => setSearch(e.target.value)}
-                    placeholder="Buscar en la tabla…"
-                    aria-label="Buscar en la tabla"
-                  />
-                  {search && (
-                    <button className="clearsearch" onClick={() => setSearch('')} aria-label="Borrar búsqueda">×</button>
-                  )}
+
+                <div style={{ display:'flex', gap:12, alignItems:'center', flexWrap:'wrap' }}>
+                  <div className="searchbar">
+                    <input
+                      className="searchbox"
+                      value={search}
+                      onChange={e => setSearch(e.target.value)}
+                      placeholder="Buscar en la tabla…"
+                      aria-label="Buscar en la tabla"
+                    />
+                    {search && (
+                      <button className="clearsearch" onClick={() => setSearch('')} aria-label="Borrar búsqueda">×</button>
+                    )}
+                  </div>
+
+                  <div className="btn-row">
+                  <button className="btn btn--ghost" onClick={handleExportCSV} title="Exporta lo visible (filtros y búsqueda) a CSV">
+                    Exportar CSV
+                  </button>
+                  <button className="btn" onClick={handleExportXLSX} title="Exporta lo visible (filtros y búsqueda) a Excel">
+                    Exportar Excel
+                  </button>
+                </div>
+
                 </div>
               </div>
 
