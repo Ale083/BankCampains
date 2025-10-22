@@ -148,6 +148,7 @@ export default function ReporteCalidad() {
           <button className="upload-button" onClick={async () => {
             try {
               await fetch('/api/contacts/clear', { method: 'DELETE' });
+              localStorage.setItem('dataCleared', '1');
             } catch (error) {
               console.error('Error clearing data:', error);
             }
