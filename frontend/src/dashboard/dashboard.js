@@ -34,7 +34,6 @@ export default function Dashboard() {
 
   useEffect(() => {
     fetchKPIs(G, C).then((data) => {
-      console.log(data);
       setRentabilidadProy(data.rentabilidad.profit); 
       setTasaConversion(data.tasaConversion.conversionRate);
       setDuracionPromedio(data.avgDuration.avgDuration);
