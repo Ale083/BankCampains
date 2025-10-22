@@ -6,38 +6,41 @@ const Header = ({ title = "Carga de datos", showNavbar = true }) => {
   const [hasHistoryData, setHasHistoryData] = useState(false);
   const [isLoading, setIsLoading] = useState(true);
   const [disabledByClear, setDisabledByClear] = useState(() => !!localStorage.getItem('dataCleared'));
+  const [forceCheck, setForceCheck] = useState(0);
   const location = useLocation();
   const navigate = useNavigate();
 
-  // Ocultar navbar en reporte
+  
   const showNav = Boolean(showNavbar) && location.pathname !== '/reporte';
 
   useEffect(() => {
     const checkDataAvailability = async () => {
       try {
+       
         const contactsResponse = await fetch('/api/contacts/exists');
         const contactsData = await contactsResponse.json();
-        const exists = !!contactsData.exists;
+        setHasValidData(!!contactsData.exists);
 
-        if (exists) {
-          // Ya hay datos: quitar cualquier bloqueo temporal
-          if (localStorage.getItem('dataCleared')) {
-            localStorage.removeItem('dataCleared');
-            localStorage.removeItem('dataClearedAt');
+        if (contactsData.exists) {
+          setHasValidData(true);
+          
+          if (!localStorage.getItem('dataCleared')) {
+            setDisabledByClear(false);
           }
-          setDisabledByClear(false);
         } else {
-          // No hay datos: mantener bloqueo solo si se inició limpieza
-          const cleared = !!localStorage.getItem('dataCleared');
-          setDisabledByClear(cleared);
+          setHasValidData(false);
+          
+          if (localStorage.getItem('dataCleared')) {
+            setDisabledByClear(true);
+          }
         }
 
-        setHasValidData(exists);
-
-        // (Opcional) historial
-        const historyResponse = await fetch('/api/history');
-        const historyData = await historyResponse.json();
-        setHasHistoryData(!!(historyData.items && historyData.items.length > 0));
+        
+        try {
+          const historyResponse = await fetch('/api/history');
+          const historyData = await historyResponse.json();
+          setHasHistoryData(!!(historyData.items && historyData.items.length > 0));
+        } catch {}
       } catch (error) {
         console.error('Error checking data availability:', error);
         setHasValidData(false);
@@ -48,64 +51,29 @@ const Header = ({ title = "Carga de datos", showNavbar = true }) => {
     };
 
     checkDataAvailability();
-  }, [location.pathname]);
+  }, [location.pathname, forceCheck]);
 
-  // Al detectar subida exitosa, quitar bandera y re-habilitar
+  
   useEffect(() => {
-    const id = setInterval(async () => {
+    const handleDataUpload = () => {
+      localStorage.removeItem('dataCleared');
+      setDisabledByClear(false);
+      setForceCheck(prev => prev + 1);
+    };
+
+    const checkForDataUpload = () => {
       const uploaded = localStorage.getItem('dataUploaded');
       if (uploaded) {
         localStorage.removeItem('dataUploaded');
-        localStorage.removeItem('dataCleared');
-        localStorage.removeItem('dataClearedAt');
-        setDisabledByClear(false);
-        try {
-          const res = await fetch('/api/contacts/exists');
-          const json = await res.json();
-          setHasValidData(!!json.exists);
-        } catch {
-          setHasValidData(true);
-        }
-      }
-    }, 1000);
-    return () => clearInterval(id);
-  }, []);
-
-  // Mientras dataCleared esté activa, hacer polling para desbloquear cuando termine el borrado
-  useEffect(() => {
-    if (!disabledByClear) return;
-
-    let cancelled = false;
-    const poll = async () => {
-      try {
-        const res = await fetch('/api/contacts/exists');
-        const json = await res.json();
-        const exists = !!json.exists;
-        const startedAt = parseInt(localStorage.getItem('dataClearedAt') || '0', 10);
-        const ageMs = Date.now() - startedAt;
-        // Desbloquear si ya no hay datos (borrado completado) o si pasó un TTL de seguridad
-        if (!exists || ageMs > 8000) {
-          localStorage.removeItem('dataCleared');
-          localStorage.removeItem('dataClearedAt');
-          if (!cancelled) {
-            setDisabledByClear(false);
-            setHasValidData(exists);
-          }
-          return; // terminar polling
-        }
-        if (!cancelled) setHasValidData(exists);
-        setTimeout(poll, 1000);
-      } catch (e) {
-        // reintentar suave
-        if (!cancelled) setTimeout(poll, 1500);
+        handleDataUpload();
       }
     };
 
-    poll();
-    return () => { cancelled = true; };
-  }, [disabledByClear]);
+    const interval = setInterval(checkForDataUpload, 800);
+    return () => clearInterval(interval);
+  }, []);
 
-  // Helper para iniciales seguras
+ 
   const initials = (() => {
     try {
       const s = JSON.parse(localStorage.getItem('session'));
@@ -185,8 +153,8 @@ const Header = ({ title = "Carga de datos", showNavbar = true }) => {
 
           {[ 
             { to: '/', label: 'Carga de Datos', enabled: true, requirement: '', clearData: true },
-            { to: '/dashboardKPIs', label: 'Dashboard', enabled: hasValidData && !disabledByClear, requirement: 'CSV válido' },
-            { to: '/explorador', label: 'Explorador', enabled: hasValidData && !disabledByClear, requirement: 'CSV válido' },
+            { to: '/dashboardKPIs', label: 'Dashboard', enabled: hasValidData && !disabledByClear, requirement: 'datos válidos' },
+            { to: '/explorador', label: 'Explorador', enabled: hasValidData && !disabledByClear, requirement: 'datos válidos' },
             { to: '/historial', label: 'Historial', enabled: true, requirement: '' },
           ].map(link => (
             <NavLink
@@ -202,7 +170,7 @@ const Header = ({ title = "Carga de datos", showNavbar = true }) => {
                 opacity: link.enabled ? 1 : 0.5,
                 position: 'relative'
               })}
-              onClick={(e) => {
+              onClick={async (e) => {
                 if (!link.enabled) {
                   e.preventDefault();
                   if (!isLoading) {
@@ -214,18 +182,23 @@ const Header = ({ title = "Carga de datos", showNavbar = true }) => {
                     alert(message);
                   }
                 } else if (link.clearData) {
-                  // Limpiar inmediatamente: bloquear y navegar, y limpiar en background
+                  
                   e.preventDefault();
+
                   if (hasValidData && !disabledByClear) {
                     const confirmed = window.confirm('Si cargas otro archivo se perderán los datos actuales. ¿Deseas continuar?');
                     if (!confirmed) return;
                   }
-                  localStorage.setItem('dataCleared', '1');
-                  localStorage.setItem('dataClearedAt', String(Date.now()));
-                  setDisabledByClear(true);
+
+                 
                   setHasValidData(false);
+                  setDisabledByClear(true);
+                  localStorage.setItem('dataCleared', '1');
                   navigate('/');
-                  fetch('/api/contacts/clear', { method: 'DELETE' }).catch(() => {});
+
+                  
+                  fetch('/api/contacts/clear', { method: 'DELETE' })
+                    .catch(err => console.error('Error clearing data:', err));
                 }
               }}
               title={link.enabled ? '' : `Requiere ${link.requirement || 'datos'}`}

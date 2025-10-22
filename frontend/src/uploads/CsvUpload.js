@@ -113,6 +113,11 @@ export default function CsvUpload({ onNext }) {
           }
         }
         setMessage(messageText);
+
+        // Señal para Header: upload exitoso, re-habilitar navegación
+        localStorage.setItem('dataUploaded', Date.now().toString());
+
+        // vamos al reporte pero pasa los datos para el reporte
         navigate('/reporte', { state: { result: data, columns, fileName } });
       } else {
         setUploadResult(null);
