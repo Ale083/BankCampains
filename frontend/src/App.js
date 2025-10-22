@@ -2,7 +2,6 @@ import React, { useEffect, useState } from 'react';
 import { Routes, Route, Navigate } from 'react-router-dom';
 import CsvUpload from './uploads/CsvUpload';
 import Historial from './downloads/Historial';
-import CentroDescargas from './downloads/CentroDescargas';
 
 import './App.css';
 import Dashboard from './dashboard/dashboard';
@@ -61,7 +60,6 @@ export default function App() {
         <Route path="/filtros" element={<FilterBuilder />} />
         <Route path="/explorador" element={<Explorer />} />
         <Route path="/historial" element={<Historial />} />
-        <Route path="/descargas" element={<CentroDescargas />} />
         <Route path="*" element={<Navigate to={'/'} replace />} />
       </Routes>
     </div>
