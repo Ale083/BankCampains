@@ -13,6 +13,11 @@ import { listPresets, mergeFiltersAND } from "../filters/utils";
 import { listSavedFilters } from "../api/savedFilters";
 import { mongoFilterToQuery } from "../filters/qsFromMongo";
 
+import { fetchKPIs, rentabilidad } from "./fetchKPIs";
+import { listPresets, mergeFiltersAND } from "../filters/utils";
+import { listSavedFilters } from "../api/savedFilters";
+import { mongoFilterToQuery } from "../filters/qsFromMongo";
+
 export default function Dashboard() {
   const [G, setG] = useState(200);
   const [C, setC] = useState(0.5);
@@ -32,24 +37,84 @@ export default function Dashboard() {
   const [impactoHistorial, setImpactoHistorial] = useState([]);
   const [indiceEficiencia, setIndiceEficiencia] = useState([]);
 
+  const chartRef = useRef(null);
+  const RefTasaConversion = useRef(null);
+  const RefDuracionPromedio = useRef(null);
+  const RefRentabilidadProy = useRef(null);
+  const RefContactosPorMes = useRef(null);
+  const RefTasaExitoCanal = useRef(null);
+  const RefConversionPorEdad = useRef(null);
+  const RefImpactoHistorial = useRef(null);
+  const RefIndiceEficiencia = useRef(null);
+  const RefFiltros = useRef(null);
+
   useEffect(() => {
-    fetchKPIs(G, C).then((data) => {
-      console.log(data);
-      setRentabilidadProy(data.rentabilidad.profit); 
+    setPresets(listPresets());
+  }, []);
+
+  useEffect(() => {
+    (async () => {
+      try {
+        setLoadingDb(true);
+        const r = await listSavedFilters();
+        if (r?.ok) setDbFilters(r.data || []);
+        else if (Array.isArray(r)) setDbFilters(r);
+        else setDbFilters([]);
+      } catch (e) {
+        console.error("Error listSavedFilters:", e);
+        setDbFilters([]);
+      } finally {
+        setLoadingDb(false);
+      }
+    })();
+  }, []);
+
+  const selectedFilters = useMemo(
+    () => presets.filter(p => active[p.id]).map(p => p.filter),
+    [presets, active]
+  );
+  const selectedDb = useMemo(
+    () => dbFilters.filter(f => activeDb[f._id]).map(f => f.filter),
+    [dbFilters, activeDb]
+  );
+
+  const mergedFilterObj = useMemo(
+    () => mergeFiltersAND([...selectedFilters, ...selectedDb]),
+    [selectedFilters, selectedDb]
+  );
+  const filtersQS = useMemo(
+    () => mongoFilterToQuery(mergedFilterObj),
+    [mergedFilterObj]
+  );
+
+  useEffect(() => {
+    (async () => {
+      const data = await fetchKPIs(G, C, filtersQS);
+      setRentabilidadProy(data.rentabilidad.profit);
       setTasaConversion(data.tasaConversion.conversionRate);
       setDuracionPromedio(data.avgDuration.avgDuration);
       setContactosPorMes(data.contactosPorMes);
       setTasaExitoCanal(data.tasaExitoPorCanal);
       setConversionPorEdad(data.conversionPorEdad);
-      const historial = data.impactoHistorialPrevio.map( d => ({
+
+      const historial = (data.impactoHistorialPrevio || []).map(d => ({
         poutcome: d.poutcome,
         yes: (d.yes / d.total) * 100,
-        no: (d.no / d.total) * 100,
-      }))
+        no:  (d.no  / d.total) * 100,
+      }));
       setImpactoHistorial(historial);
+
       setIndiceEficiencia(data.indiceEficienciaPorCampaña);
-    });
-  }, []);
+    })().catch(err => console.error("fetchKPIs error:", err));
+  }, [G, C, filtersQS]);
+
+  const toggle = (id) => setActive(s => ({ ...s, [id]: !s[id] }));
+  const toggleDb = (id) => setActiveDb(s => ({ ...s, [id]: !s[id] }));
+
+  const queryObjForSummary = useMemo(
+    () => Object.fromEntries(new URLSearchParams(filtersQS)),
+    [filtersQS]
+  );
 
   const chartRef = useRef(null);
   const RefTasaConversion = useRef(null);
