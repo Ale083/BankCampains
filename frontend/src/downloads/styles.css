@@ -1,0 +1,39 @@
+/* Shared styles for Historial and Centro de Descargas */
+
+.downloads-page { min-height: 100vh; }
+
+.downloads-wrap {
+  max-width: 1200px;
+  margin: 0 auto;
+  padding: 16px;
+  display: grid;
+  grid-template-columns: 280px 1fr 320px;
+  gap: 16px;
+}
+
+.downloads-card {
+  background: #fff;
+  border: 1px solid #e5e7eb;
+  border-radius: 8px;
+  padding: 16px;
+}
+
+.downloads-panel-title { margin: 0 0 10px; font-size: 16px; }
+.downloads-muted { color: #6b7280; }
+
+.downloads-actions { display: flex; gap: 8px; margin-bottom: 12px; }
+.btn { background: #2e2e2e; color: #fff; border: 0; border-radius: 6px; padding: 8px 12px; cursor: pointer; }
+.btn:disabled { opacity: .5; cursor: default; }
+
+.table-card { background: #fff; border: 1px solid #e5e7eb; border-radius: 8px; overflow: hidden; }
+.table { width: 100%; border-collapse: collapse; }
+.table thead th { background: #f3f4f6; text-align: left; padding: 8px; font-weight: 600; font-size: 13px; }
+.table tbody td { padding: 8px; border-top: 1px solid #f1f5f9; font-size: 13px; }
+.table tbody tr:hover { background: #f8fafc; }
+.table .row-selected { background: #eef2ff; }
+
+.filter-group { margin-bottom: 16px; }
+.filter-title { font-weight: 700; margin: 8px 0; }
+.filter-item { display: flex; align-items: center; gap: 8px; margin: 6px 0; }
+
+.inputs-inline { display: flex; gap: 8px; }

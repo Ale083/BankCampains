@@ -9,6 +9,9 @@ const uploadCsv = require('./controller/uploads/uploadCsv');
 const btw = require('./controller/filters/btw');
 const devSessionRouter   = require('./controller/auth/devSession');
 const savedFiltersRouter = require('./controller/filters/savedFilters');
+const historyRouter = require('./controller/history/history')
+const contactsRouter = require('./controller/contacts/contacts')
+
 
 const app = express();
 app.use(cors());
@@ -19,13 +22,16 @@ app.use('/api/uploads', uploadCsv);
 app.use('/api/btw', btw);
 app.use('/api/dev', devSessionRouter);             
 app.use('/api/saved-filters', savedFiltersRouter);  
+app.use('/api/history', historyRouter);
+app.use('/api/contacts', contactsRouter);
 
 async function start() {
   try {
-    await mongoose.connect(process.env.MONGO_URI);
+    const MONGO_URI = process.env.MONGO_URI || 'mongodb://127.0.0.1:27017/bankcampains';
+    await mongoose.connect(MONGO_URI);
     console.log('Conectado a la DB');
     const port = process.env.PORT || 3001;
-    app.listen(port, () => console.log(`API corriendo en :${port}`));
+    app.listen(port, () => console.log(`API corriendo en :${port} ${MONGO_URI}`));
   } catch (err) {
     console.error(err);
     process.exit(1);

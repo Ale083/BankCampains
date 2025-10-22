@@ -48,7 +48,7 @@ export default function ReporteCalidad() {
 
   return (
     <div className="csv-upload-container">
-      <Header title="Reporte de Calidad de Datos" />
+      <Header title="Reporte de Calidad de Datos" showNavbar={false} />
 
       <div className="csv-upload-content">
        
@@ -145,7 +145,14 @@ export default function ReporteCalidad() {
 
         
         <div className="report-footer">
-          <button className="upload-button" onClick={() => navigate(-1)}>Volver</button>
+          <button className="upload-button" onClick={async () => {
+            try {
+              await fetch('/api/contacts/clear', { method: 'DELETE' });
+            } catch (error) {
+              console.error('Error clearing data:', error);
+            }
+            navigate(-1);
+          }}>Volver</button>
           {hasValidInserted && (
             <button className="upload-button" onClick={() => navigate('/dashboardKPIs')}>Ir al dashboard</button>
           )}

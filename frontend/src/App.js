@@ -1,11 +1,13 @@
 import React, { useEffect, useState } from 'react';
 import { Routes, Route, Navigate } from 'react-router-dom';
 import CsvUpload from './uploads/CsvUpload';
+import Historial from './downloads/Historial';
+import './App.css';
 import Dashboard from './dashboard/dashboard';
 import ReporteCalidad from './uploads/ReporteCalidad';
 import FilterBuilder from './filters/FilterBuilder';
 import Explorer from './explorer/Explorer';
-import './App.css';
+
 
 export default function App() {
   const [ready, setReady] = useState(false);
@@ -57,6 +59,7 @@ export default function App() {
         <Route path="/filtros" element={<FilterBuilder />} />
         <Route path="/explorador" element={<Explorer />} />
         <Route path="*" element={<Navigate to="/" replace />} />
+        <Route path="/historial" element={<Historial />} />
       </Routes>
     </div>
   );
