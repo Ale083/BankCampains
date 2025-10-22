@@ -12,7 +12,6 @@ const savedFiltersRouter = require('./controller/filters/savedFilters');
 const contacts = require('./controller/contacts/contacts')
 const clearContacts = require('./controller/contacts/clear')
 const history = require('./controller/history/history')
-const exportsRouter = require('./controller/exports/exports')
 const historyRouter = require('./controller/history/history')
 const contactsRouter = require('./controller/contacts/contacts')
 
@@ -28,7 +27,6 @@ app.use('/api/saved-filters', savedFiltersRouter);
 app.use('/api/contacts', contacts);
 app.use('/api/contacts', clearContacts);
 app.use('/api/history', history);
-app.use('/api/exports', exportsRouter);
 app.use('/api/history', historyRouter);
 app.use('/api/contacts', contactsRouter);
 

@@ -1,7 +1,7 @@
 import XlsxPopulate from "xlsx-populate/browser/xlsx-populate";
 import { saveAs } from "file-saver";
 
-export async function downloadExcel(data) {
+export async function exportToExcel(data) {
   const buf = await (await fetch("/chart-template.xlsx")).arrayBuffer();
   const wb  = await XlsxPopulate.fromDataAsync(buf);
   const ws  = wb.sheet("Data");
