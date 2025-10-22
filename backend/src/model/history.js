@@ -31,7 +31,7 @@ const historySchema = new mongoose.Schema({
     enum: ['success', 'failed', 'pending'],
     default: 'success'
   },
-  // Campos adicionales para compatibilidad con el frontend existente
+  
   filters: {
     type: Object,
     default: {}
@@ -55,9 +55,9 @@ const historySchema = new mongoose.Schema({
     default: ''
   }
 }, {
-  // Permitir campos adicionales para compatibilidad
+  
   strict: false
 });
 
-// Especificar el nombre exacto de la colección existente
+
 module.exports = mongoose.model('History', historySchema, 'history');

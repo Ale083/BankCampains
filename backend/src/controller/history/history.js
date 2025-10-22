@@ -3,7 +3,7 @@ const historyService = require('../../service/history/history');
 
 const router = Router();
 
-// Basic in-memory history endpoints
+
 router.get('/', async (req, res) => {
   try {
     const r = await historyService.list(req.query);

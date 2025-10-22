@@ -3,7 +3,7 @@ const Contact = require('../../model/contact');
 
 const router = Router();
 
-// Endpoint to count total contacts
+
 router.get('/count', async (req, res) => {
   try {
     const count = await Contact.countDocuments();
@@ -14,7 +14,7 @@ router.get('/count', async (req, res) => {
   }
 });
 
-// Endpoint to check if there are any contacts (lighter than count)
+
 router.get('/exists', async (req, res) => {
   try {
     const exists = await Contact.exists({});
