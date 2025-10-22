@@ -2,13 +2,12 @@ const URL_BASE = process.env.URL_BASE || "http://localhost:3001";
 
 const withQS = (path, qs) => (qs && qs.length ? `${path}?${qs}` : path);
 
-export async function fetchKPIs(G, C, filtersQS = "") {
+export async function fetchKPIs(filtersQS = "") {
   try {
     const qsBase = filtersQS || "";
     return {
       tasaConversion: await tasaConversion(qsBase),
       avgDuration: await avgDuration(qsBase),
-      rentabilidad: await rentabilidad(G, C, qsBase),
       contactosPorMes: await contactosPorMes(qsBase),
       tasaExitoPorCanal: await tasaExitoPorCanal(qsBase),
       conversionPorEdad: await conversionPorEdad(qsBase),
@@ -27,12 +26,6 @@ async function tasaConversion(filtersQS) {
 
 async function avgDuration(filtersQS) {
   return fetch(withQS(`${URL_BASE}/kpis/avg-duration`, filtersQS)).then(r => r.json());
-}
-
-export async function rentabilidad(G, C, filtersQS = "") {
-  const extra = new URLSearchParams({ G: String(G), C: String(C) });
-  const joined = [filtersQS, extra.toString()].filter(Boolean).join("&");
-  return fetch(withQS(`${URL_BASE}/kpis/rentabilidad`, joined)).then(r => r.json());
 }
 
 async function contactosPorMes(filtersQS) {

@@ -2,8 +2,6 @@ const { redondear } = require("../../utils/utils")
 
 exports.conversionRate = (yes, total) => redondear(total ? (yes * 100) / total : 0)
 
-exports.rentabilidad = (yes, total, G, C) => yes * G - total * C
-
 exports.ageBucketExpr = () => ({
   $switch: {
     branches: [

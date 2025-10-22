@@ -22,7 +22,6 @@ export async function exportToExcel(data) {
 
   ws.cell("B20").value(data?.tasaConversion?.conversionRate );
   ws.cell("B21").value(data?.avgDuration?.avgDuration);
-  ws.cell("B22").value(data?.rentabilidad?.profit);
 
   const out = await wb.outputAsync();
   saveAs(

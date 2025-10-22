@@ -7,22 +7,18 @@ import { Link } from "react-router-dom";
 import { ChartBox, KPIBox } from "./componentesKPIs";
 import { FilterSummary } from "./sidebarFiltros";
 
-import { fetchKPIs, rentabilidad } from "./fetchKPIs";
+import { fetchKPIs } from "./fetchKPIs";
 import { listPresets, mergeFiltersAND } from "../filters/utils";
 import { listSavedFilters } from "../api/savedFilters";
 import { mongoFilterToQuery } from "../filters/qsFromMongo";
 
 export default function Dashboard() {
-  const [G, setG] = useState(200);
-  const [C, setC] = useState(0.5);
-
   const [presets, setPresets] = useState(() => listPresets());
   const [active, setActive] = useState({});
   const [dbFilters, setDbFilters] = useState([]);
   const [activeDb, setActiveDb] = useState({});
   const [loadingDb, setLoadingDb] = useState(false);
 
-  const [rentabilidadProy, setRentabilidadProy] = useState(0);
   const [tasaConversion, setTasaConversion] = useState(0);
   const [duracionPromedio, setDuracionPromedio] = useState(0);
   const [contactosPorMes, setContactosPorMes] = useState([]);
@@ -34,7 +30,6 @@ export default function Dashboard() {
   const chartRef = useRef(null);
   const RefTasaConversion = useRef(null);
   const RefDuracionPromedio = useRef(null);
-  const RefRentabilidadProy = useRef(null);
   const RefContactosPorMes = useRef(null);
   const RefTasaExitoCanal = useRef(null);
   const RefConversionPorEdad = useRef(null);
@@ -82,10 +77,7 @@ export default function Dashboard() {
   );
 
   useEffect(() => {
-    fetchKPIs(G, C, filtersQS).then((data) => {
-      console.log(tasaConversion);
-      console.log(filtersQS);
-      setRentabilidadProy(data.rentabilidad.profit); 
+    fetchKPIs(filtersQS).then((data) => {
       setTasaConversion(data.tasaConversion.conversionRate);
       setDuracionPromedio(data.avgDuration.avgDuration);
       setContactosPorMes(data.contactosPorMes);
@@ -98,10 +90,9 @@ export default function Dashboard() {
         no:  (d.no  / d.total) * 100,
       }));
       setImpactoHistorial(historial);
-
       setIndiceEficiencia(data.indiceEficienciaPorCampaña);
     }).catch(err => console.error("fetchKPIs error:", err));
-  }, [G, C, filtersQS]);
+  }, [filtersQS]);
 
   const toggle = (id) => setActive(s => ({ ...s, [id]: !s[id] }));
   const toggleDb = (id) => setActiveDb(s => ({ ...s, [id]: !s[id] }));
@@ -146,33 +137,12 @@ export default function Dashboard() {
           <div className="kpis">
             <KPIBox ref={RefTasaConversion} title="Tasa de Conversión" value={`${tasaConversion}%`} />
             <KPIBox ref={RefDuracionPromedio} title="Duración Promedio" value={`${duracionPromedio} min`} />
-            <KPIBox ref={RefRentabilidadProy} title="Rentabilidad Proyectada" value={rentabilidadProy}>
-              <div className="note">Parámetros (G y C)</div>
-              <div>
-                <input
-                  type="number" min="20" max="1000" step="10" value={G} required
-                  onChange={e => setG(Number(e.target.value))}
-                />
-                <input
-                  type="number" min="0.1" max="3.0" step="0.05" value={C} required
-                  onChange={e => setC(Number(e.target.value))}
-                />
-              </div>
-              <button
-                onClick={async () => {
-                  const data = await rentabilidad(G, C, filtersQS);
-                  setRentabilidadProy(data.profit);
-                }}
-              >
-                Actualizar
-              </button>
-            </KPIBox>
           </div>
 
           <div className="actions">
             <button className="btn" onClick={() => downloadPdf(chartRef)}>Exportar PDF</button>
             <button className="btn" onClick={() => 
-              exportToExcel({contactosPorMes, tasaExitoCanal, conversionPorEdad, impactoHistorial, indiceEficiencia, tasaConversion: {conversionRate: tasaConversion}, avgDuration: {avgDuration: duracionPromedio}, rentabilidad: {profit: rentabilidadProy} })
+              exportToExcel({contactosPorMes, tasaExitoCanal, conversionPorEdad, impactoHistorial, indiceEficiencia, tasaConversion: {conversionRate: tasaConversion}, avgDuration: {avgDuration: duracionPromedio} })
             }>Exportar Excel</button>
           </div>
 
