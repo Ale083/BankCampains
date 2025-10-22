@@ -331,7 +331,7 @@ export default function Explorer() {
           <aside style={{ border: '1px solid #eee', borderRadius: 12, padding: 12 }}>
             <h3 style={{ marginTop: 0 }}>Filtros (presets)</h3>
             <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
-              {presets.length === 0 && <div className="muted">No hay presets. Crea uno en “Constructor de Filtros”.</div>}
+              
               {presets.map(p => (
                 <Chip
                   key={p.id}
@@ -347,25 +347,8 @@ export default function Explorer() {
             </div>
 
             <div style={{ marginTop: 16 }}>
-              <h4 style={{ margin: '12px 0 8px' }}>Mis filtros (BD)</h4>
-              <div className="muted" style={{ marginBottom: 8 }}>
-                {loadingDb ? 'Cargando…' : (dbFilters?.length ? 'Persistidos en la base de datos' : 'No hay filtros en BD')}
-              </div>
-              <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
-                {presets.length === 0 && <div className="muted">No hay presets. Crea uno en “Constructor de Filtros”.</div>}
-                {presets.map(p => (
-                  <Chip
-                    key={p.id}
-                    label={p.name}
-                    active={!!active[p.id]}
-                    onToggle={() => toggle(p.id)}
-                    onDelete={() => handleDelete(p.id)}
-                  />
-                ))}
-              </div>
-              <div style={{ marginTop: 12 }}>
-                <Link className="btn" to="/filtros">Crear/Cargar presets</Link>
-              </div>
+              
+             
               <div style={{ marginTop: 16 }}>
                 <h4 style={{ margin: '12px 0 8px' }}>Mis filtros (BD)</h4>
                 <div className="muted" style={{ marginBottom: 8 }}>
