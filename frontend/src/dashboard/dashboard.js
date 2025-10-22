@@ -3,7 +3,7 @@ import "./styles.css";
 import Header from "../components/Header";
 import { downloadPdf } from "./exportToPDF";
 import { exportToExcel } from "./exportToExcel";
-
+import { Link } from "react-router-dom";
 import { ChartBox, KPIBox } from "./componentesKPIs";
 import { FilterSummary } from "./sidebarFiltros";
 
@@ -117,10 +117,17 @@ export default function Dashboard() {
       <main className="wrap" ref={chartRef}>
         {/* izquierda */}
         <aside className="sidebar">
+          
           <div className="muted" style={{ marginBottom: 8 }}>
             {loadingDb ? "Cargando filtros de BD…" : null}
           </div>
-
+            <Link
+            className="btn"
+            to="/filtros"
+            state={{ returnTo: "/dashboardKPIs" }}
+          >
+            Crear/Cargar presets
+          </Link>
           <FilterSummary
             ref={RefFiltros}
             query={queryObjForSummary}
@@ -131,6 +138,7 @@ export default function Dashboard() {
             activeDb={activeDb}
             onToggleDb={toggleDb}
           />
+          
         </aside>
 
         <section className="content">

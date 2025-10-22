@@ -358,7 +358,9 @@ export default function Explorer() {
                 ))}
               </div>
               <div style={{ marginTop: 12 }}>
-                <Link className="btn" to="/filtros">Crear/Cargar presets</Link>
+                <Link className="btn" to="/filtros" state={{ returnTo: "/explorador" }}>
+                  Crear/Cargar presets
+                </Link>
               </div>
               <div style={{ marginTop: 16 }}>
                 <h4 style={{ margin: '12px 0 8px' }}>Mis filtros (BD)</h4>
