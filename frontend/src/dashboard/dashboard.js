@@ -6,6 +6,7 @@ import { exportToExcel } from "./exportToExcel";
 import { Link } from "react-router-dom";
 import { ChartBox, KPIBox } from "./componentesKPIs";
 import { FilterSummary } from "./sidebarFiltros";
+import { downloadExcel } from "./exportToExcel";
 
 import { fetchKPIs, rentabilidad } from "./fetchKPIs";
 import { listPresets, mergeFiltersAND } from "../filters/utils";
@@ -30,6 +31,25 @@ export default function Dashboard() {
   const [conversionPorEdad, setConversionPorEdad] = useState([]);
   const [impactoHistorial, setImpactoHistorial] = useState([]);
   const [indiceEficiencia, setIndiceEficiencia] = useState([]);
+
+  useEffect(() => {
+    fetchKPIs(G, C).then((data) => {
+      console.log(data);
+      setRentabilidadProy(data.rentabilidad.profit); 
+      setTasaConversion(data.tasaConversion.conversionRate);
+      setDuracionPromedio(data.avgDuration.avgDuration);
+      setContactosPorMes(data.contactosPorMes);
+      setTasaExitoCanal(data.tasaExitoPorCanal);
+      setConversionPorEdad(data.conversionPorEdad);
+      const historial = data.impactoHistorialPrevio.map( d => ({
+        poutcome: d.poutcome,
+        yes: (d.yes / d.total) * 100,
+        no: (d.no / d.total) * 100,
+      }))
+      setImpactoHistorial(historial);
+      setIndiceEficiencia(data.indiceEficienciaPorCampaña);
+    });
+  }, []);
 
   const chartRef = useRef(null);
   const RefTasaConversion = useRef(null);
@@ -170,21 +190,9 @@ export default function Dashboard() {
 
           <div className="actions">
             <button className="btn" onClick={() => downloadPdf(chartRef)}>Exportar PDF</button>
-            <button
-              className="btn"
-              onClick={() =>
-                exportToExcel({
-                  charts: [
-                    RefTasaConversion, RefDuracionPromedio, RefRentabilidadProy,
-                    RefContactosPorMes, RefTasaExitoCanal, RefConversionPorEdad,
-                    RefImpactoHistorial, RefIndiceEficiencia, RefFiltros
-                  ],
-                  filename: "Dashboard.xlsx",
-                })
-              }
-            >
-              Exportar Excel
-            </button>
+            <button className="btn" onClick={() => 
+              downloadExcel({contactosPorMes, tasaExitoCanal, conversionPorEdad, impactoHistorial, indiceEficiencia, tasaConversion: {conversionRate: tasaConversion}, avgDuration: {avgDuration: duracionPromedio}, rentabilidad: {profit: rentabilidadProy} })
+            }>Exportar Excel</button>
           </div>
 
           <div className="charts">
