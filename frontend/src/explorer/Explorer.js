@@ -248,19 +248,24 @@ export default function Explorer() {
   }
 
   useEffect(() => {
-    setPage(1);
-  }, [merged, sortKey, sortDir, pageSize]);
-
-  useEffect(() => {
     const id = setTimeout(() => setSearchDebounced(search.trim()), 200);
     return () => clearTimeout(id);
   }, [search]);
 
-  const totalPages = Math.max(1, Math.ceil(sortedRows.length / pageSize));
+  useEffect(() => {
+    setPage(1);
+  }, [merged, sortKey, sortDir, pageSize, searchDebounced]);
+
+  const visibleRows = useMemo(() => {
+    if (!searchRe) return sortedRows;
+    return sortedRows.filter(rowMatches);
+  }, [sortedRows, searchRe, displayedCols]);
+
+  const totalPages = Math.max(1, Math.ceil(visibleRows.length / pageSize));
   const currentPage = Math.min(page, totalPages);
   const startIndex = (currentPage - 1) * pageSize;
-  const endIndex = Math.min(startIndex + pageSize, sortedRows.length);
-  const pagedRows = useMemo(() => sortedRows.slice(startIndex, endIndex), [sortedRows, startIndex, endIndex]);
+  const endIndex = Math.min(startIndex + pageSize, visibleRows.length);
+  const pagedRows = useMemo(() => visibleRows.slice(startIndex, endIndex), [visibleRows, startIndex, endIndex]);
 
   function gotoPage(p) {
     if (!Number.isFinite(p)) return;
@@ -284,18 +289,6 @@ export default function Explorer() {
     pages.push(1, '…', current - 1, current, current + 1, '…', total);
     return pages;
   }
-
-  const matchCountTotal = useMemo(() => {
-    if (!searchRe) return sortedRows.length;
-    let c = 0; for (const r of sortedRows) if (rowMatches(r)) c++;
-    return c;
-  }, [sortedRows, searchRe]);
-
-  const matchCountPage = useMemo(() => {
-    if (!searchRe) return pagedRows.length;
-    let c = 0; for (const r of pagedRows) if (rowMatches(r)) c++;
-    return c;
-  }, [pagedRows, searchRe]);
 
   useEffect(() => {
     const top = topScrollRef.current;
@@ -321,34 +314,39 @@ export default function Explorer() {
       window.removeEventListener('resize', resize);
       ro.disconnect();
     };
-  }, [filteredRows, columns]);
+  }, [visibleRows, displayedCols]);
 
   return (
     <div className="page">
-      <Header title="Explorador Tabulador de Datos" />
+      <Header title="Explorador Tabulador de Datos" showNavbar = {true}/>
       <main className="wrap" style={{ gap: 16 }}>
-        <section style={{ display: 'grid', gridTemplateColumns: '280px 1fr', gap: 16 }}>
-          <aside style={{ border: '1px solid #eee', borderRadius: 12, padding: 12 }}>
-            <h3 style={{ marginTop: 0 }}>Filtros (presets)</h3>
-            <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
-              
-              {presets.map(p => (
-                <Chip
-                  key={p.id}
-                  label={p.name}
-                  active={!!active[p.id]}
-                  onToggle={() => toggle(p.id)}
-                  onDelete={() => handleDelete(p.id)}
-                />
-              ))}
-            </div>
-            <div style={{ marginTop: 12 }}>
-              <Link className="btn" to="/filtros">Crear presets</Link>
-            </div>
-
-            <div style={{ marginTop: 16 }}>
-              
-             
+        <div className="container-wide">
+          <section
+            style={{
+              display: 'grid',
+              gridTemplateColumns: 'minmax(260px, 300px) 1fr',
+              gap: 16,
+              width: '100%',
+              alignItems: 'start'
+            }}
+          >
+            <aside style={{ border: '1px solid #eee', borderRadius: 12, padding: 12 }}>
+              <h3 style={{ marginTop: 0 }}>Filtros (presets)</h3>
+              <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+                {presets.length === 0 && <div className="muted">No hay presets. Crea uno en “Constructor de Filtros”.</div>}
+                {presets.map(p => (
+                  <Chip
+                    key={p.id}
+                    label={p.name}
+                    active={!!active[p.id]}
+                    onToggle={() => toggle(p.id)}
+                    onDelete={() => handleDelete(p.id)}
+                  />
+                ))}
+              </div>
+              <div style={{ marginTop: 12 }}>
+                <Link className="btn" to="/filtros">Crear/Cargar presets</Link>
+              </div>
               <div style={{ marginTop: 16 }}>
                 <h4 style={{ margin: '12px 0 8px' }}>Mis filtros (BD)</h4>
                 <div className="muted" style={{ marginBottom: 8 }}>
@@ -366,8 +364,7 @@ export default function Explorer() {
                   ))}
                 </div>
               </div>
-            </div>
-          </aside>
+            </aside>
 
             <section style={{ display: 'flex', flexDirection: 'column', gap: 12 }} className="minw0">
               <div
@@ -387,7 +384,7 @@ export default function Explorer() {
                   <div>Filas filtradas: <b>{filteredCount}</b></div>
                   <div>Tasa de Conversión: <b>{conversionRate}%</b></div>
                   <div>Contactos Totales: <b>{datasetTotal}</b></div>
-                  <div className="muted">Coincidencias: <b>{matchCountPage}</b> / <b>{matchCountTotal}</b></div>
+                  <div>Coincidencias de búsqueda: <b>{visibleRows.length}</b></div>
                 </div>
                 <div className="searchbar">
                   <input
@@ -487,12 +484,13 @@ export default function Explorer() {
 
                 <div className="pager__right">
                   <span className="pager__range">
-                    Mostrando <b>{sortedRows.length ? startIndex + 1 : 0}</b>–<b>{endIndex}</b> de <b>{sortedRows.length}</b>
+                    Mostrando <b>{visibleRows.length ? startIndex + 1 : 0}</b>–<b>{endIndex}</b> de <b>{visibleRows.length}</b>
                   </span>
                 </div>
               </div>
             </section>
           </section>
+        </div>
       </main>
     </div>
   );
