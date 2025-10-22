@@ -16,7 +16,7 @@ exports.add = async ({ name = 'Consulta', type = 'kpi', filters = {}, resultCoun
   
   const savedItem = await historyItem.save();
   
-  // Convertir el resultado para compatibilidad con el frontend
+  
   return {
     id: savedItem._id.toString(),
     name: savedItem.name,
@@ -35,7 +35,7 @@ exports.add = async ({ name = 'Consulta', type = 'kpi', filters = {}, resultCoun
 exports.list = async (q = {}) => {
   let query = {};
   
-  // Filtros: status, type, requestedBy, from, to
+
   if (q.status) {
     const statuses = String(q.status).split(',').map((s) => s.trim().toLowerCase());
     query.status = { $in: statuses };
@@ -63,7 +63,7 @@ exports.list = async (q = {}) => {
   
   const historyItems = await History.find(query).sort({ createdAt: -1 }).lean();
   
-  // Convertir los resultados para compatibilidad con el frontend
+  
   const items = historyItems.map(item => ({
     id: item._id.toString(),
     name: item.name,
