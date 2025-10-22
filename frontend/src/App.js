@@ -3,7 +3,6 @@ import { Routes, Route, Navigate } from 'react-router-dom';
 import HelloWorld from './estoEsUnTest/estoEsUnTest';
 import CsvUpload from './uploads/CsvUpload';
 import Historial from './downloads/Historial';
-import CentroDescargas from './downloads/CentroDescargas';
 
 import './App.css';
 import Dashboard from './dashboard/dashboard';
@@ -23,7 +22,6 @@ export default function App() {
         <Route path="/dashboardKPIs" element={<Dashboard />} />
         <Route path="/reporte" element={<ReporteCalidad />} />
         <Route path="/historial" element={<Historial />} />
-        <Route path="/descargas" element={<CentroDescargas />} />
         <Route path="*" element={<Navigate to={'/'} replace />} />
       </Routes>
     </div>
