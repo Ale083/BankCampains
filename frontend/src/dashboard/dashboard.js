@@ -88,9 +88,8 @@ export default function Dashboard() {
   );
 
   useEffect(() => {
-    (async () => {
-      const data = await fetchKPIs(G, C, filtersQS);
-      setRentabilidadProy(data.rentabilidad.profit);
+    fetchKPIs(G, C).then((data) => {
+      setRentabilidadProy(data.rentabilidad.profit); 
       setTasaConversion(data.tasaConversion.conversionRate);
       setDuracionPromedio(data.avgDuration.avgDuration);
       setContactosPorMes(data.contactosPorMes);
