@@ -350,6 +350,16 @@ const uploadCsv = async (req, res) => {
               qualityScore
             }
           };
+          
+          
+          if (rejectedRecords.length > 0) {
+            response.rejectedRecords = rejectedRecords;
+          }
+          
+          
+          if (dbErrors.length > 0) {
+            response.databaseErrors = dbErrors;
+          }
 
           // evento en history 
           try {
