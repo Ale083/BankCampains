@@ -25,4 +25,19 @@ router.get('/exists', async (req, res) => {
   }
 });
 
+
+router.get('/list', async (req, res) => {
+  try {
+    const contacts = await Contact.find({}).lean();
+    res.json({ 
+      ok: true, 
+      data: contacts,
+      count: contacts.length 
+    });
+  } catch (error) {
+    console.error('Error listing contacts:', error);
+    res.status(500).json({ error: 'Error listing contacts', details: error.message });
+  }
+});
+
 module.exports = router;

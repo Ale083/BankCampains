@@ -62,7 +62,6 @@ export default function CsvUpload({ onNext }) {
         setProgress(80);
         setCsvData(results.data);
         setColumns(results.meta.fields);
-        setData({ rows: results.data, columns: results.meta.fields });
         setProgress(100);
         setLoading(false);
       },
@@ -113,6 +112,19 @@ export default function CsvUpload({ onNext }) {
           }
         }
         setMessage(messageText);
+
+        
+        try {
+          const contactsRes = await fetch('/api/contacts/list');
+          const contactsData = await contactsRes.json();
+          if (contactsData.ok && contactsData.data) {
+            setData({ rows: contactsData.data, columns: summary.columns || columns });
+          }
+        } catch (err) {
+          console.error('Error cargando contactos desde BD:', err);
+          
+          setData({ rows: csvData, columns });
+        }
 
         // Señal para Header: upload exitoso, re-habilitar navegación
         localStorage.setItem('dataUploaded', Date.now().toString());
