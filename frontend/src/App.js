@@ -7,6 +7,7 @@ import Dashboard from './dashboard/dashboard';
 import ReporteCalidad from './uploads/ReporteCalidad';
 import FilterBuilder from './filters/FilterBuilder';
 import Explorer from './explorer/Explorer';
+import Login from './auth/login';
 
 
 export default function App() {
@@ -60,6 +61,7 @@ export default function App() {
         <Route path="/explorador" element={<Explorer />} />
         <Route path="/historial" element={<Historial />} />
         <Route path="*" element={<Navigate to={'/'} replace />} />
+        <Route path="/login" element={<Login />} />
       </Routes>
     </div>
   );
