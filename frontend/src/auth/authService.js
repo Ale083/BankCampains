@@ -8,3 +8,16 @@ export async function login(email, password) {
     throw error;
   }
 }
+
+export async function register(nombre, email, password, rol) {
+  try {
+    return await fetch(`${URL_BASE}/api/auth/register`, {
+      method: 'POST',
+      headers: {'Content-Type': 'application/json'},
+      body: JSON.stringify({ nombre, email, password, rol }),
+    }).then(r => r.json());
+  } catch (error) {
+    console.error("Error registering: ", error);
+    throw error;
+  }
+}

@@ -1,24 +1,26 @@
-// rbacService.js
+import { PERMISOS } from "./permisosEnum";
+
 const RBACService = (() => {
   const rolesPermisos = {
-    GERENCIA: [
+    'GERENCIA': [
       PERMISOS.VER_CONSULTAS_POR_FILTRO,
       PERMISOS.VER_DASHBOARD,
       PERMISOS.REGISTRAR_USUARIOS,
-      PERMISOS.LOGIN,
+      PERMISOS.VER_HISTORIAL,
       // TODO: agregar los siguientes permisos usando PERMISOS.*
     ],
-    EJECUTIVO: [
+    'EJECUTIVO': [
       PERMISOS.VER_CONSULTAS_POR_FILTRO,
       PERMISOS.VER_DASHBOARD,
-      PERMISOS.LOGIN,
+      PERMISOS.VER_HISTORIAL,
       // TODO: agregar los siguientes permisos usando PERMISOS.*
     ],
 
   };
 
-  function tienePermiso(user, permiso) {
-    const permisosRol = rolesPermisos[user.role] || [];
+  function tienePermiso(permiso) {
+    const user = JSON.parse(localStorage.getItem('session'));
+    const permisosRol = rolesPermisos[user.permisos] || [];
     return permisosRol.includes(permiso);
   }
 

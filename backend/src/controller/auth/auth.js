@@ -1,11 +1,7 @@
 const express = require('express');
 const router = express.Router();
-const mongoose = require('mongoose');
 const User = require('../../model/user');
 
-const SEED_EMAIL = process.env.SEED_EMAIL || 'seed@bank.local';
-const SEED_NAME  = process.env.SEED_NAME  || 'Usuario Semilla';
-const SEED_ROLE  = process.env.SEED_ROLE  || 'admin';
 
 router.get('/login', async (req, res) => {
   const { email, password } = req.query;
@@ -22,6 +18,28 @@ router.get('/login', async (req, res) => {
     }
   } catch (err) {
     return res.status(500).json({ ok: false, message: 'Error interno.' });
+  }
+});
+
+router.post('/register', async (req, res) => {
+  const { nombre, email, password, rol } = req.body;
+
+  try {
+    await User.create({
+      nombre,
+      email,
+      password,
+      permisos: rol
+    });
+
+    return res.status(201).json({
+      ok: true
+    });
+  } catch (err) {
+    console.error('Error al crear usuario:', err);
+    return res.status(500).json({
+      ok: false
+    });
   }
 });
 

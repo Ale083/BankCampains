@@ -1,27 +1,29 @@
 import RBACService from './RBACService.js';
 
 const AccessFacade = (() => {
-  function puedeConsultar(user) {
-    return RBACService.tienePermiso(user, 'VER_CONSULTAS_POR_FILTRO');
+  
+  function puedeVerHistorial() {
+    return RBACService.tienePermiso('VER_HISTORIAL');
+  }
+    
+  function puedeConsultar() {
+    return RBACService.tienePermiso('VER_CONSULTAS_POR_FILTRO');
   }
 
-  function puedeRegistrarUsuarios(user) {
-    return RBACService.tienePermiso(user, 'REGISTRAR_USUARIOS');
+  function puedeRegistrarUsuarios() {
+    return RBACService.tienePermiso('REGISTRAR_USUARIOS');
   }
 
-  function puedeVerDashboard(user) {
-    return RBACService.tienePermiso(user, 'VER_DASHBOARD');
+  function puedeVerDashboard() {
+    return RBACService.tienePermiso('VER_DASHBOARD');
   }
 
-  function puedeLogin(user) {
-    return RBACService.tienePermiso(user, 'LOGIN');
-  }
 
   return {
+    puedeVerHistorial,
     puedeConsultar,
     puedeRegistrarUsuarios,
     puedeVerDashboard,
-    puedeLogin,
   };
 })();
 

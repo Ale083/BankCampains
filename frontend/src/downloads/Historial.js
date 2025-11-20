@@ -1,6 +1,8 @@
 import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import Header from '../components/Header';
 import './styles.css';
+import { useNavigate } from 'react-router-dom';
+import AccessFacade from '../auth/AccessFacade';
 
 function buildQuery(q) {
   const s = new URLSearchParams();
@@ -12,6 +14,14 @@ export default function Historial() {
   const [items, setItems] = useState([]);
   const [selectedId, setSelectedId] = useState(null);
   const [range, setRange] = useState(''); 
+
+  const navigate = useNavigate();
+  useEffect(() => {
+    if(!AccessFacade.puedeVerHistorial()){
+      alert("Usuario sin permisos para ver el historial");
+      navigate(-1);
+    }
+  }, []);
 
   const rangeToDates = useMemo(() => {
     const now = new Date();

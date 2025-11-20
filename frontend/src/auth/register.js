@@ -1,38 +1,38 @@
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import './style.css';
-import { login } from './authService';
+import { register } from './authService';
+import AccessFacade from './AccessFacade';
 
-function Login() {
+function Register() {
+  const [nombre, setNombre] = useState('');
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
+  const [rol, setRol] = useState('EJECUTIVO');
   const [errorMessage, setErrorMessage] = useState('');
 
   const navigate = useNavigate();
+  useEffect(() => {
+    if(!AccessFacade.puedeRegistrarUsuarios()){
+      alert("Usuario sin permisos para registrar usuarios");
+      navigate(-1);
+    }
+  }, []);
 
   const handleSubmit = async (event) => {
     event.preventDefault();
     setErrorMessage('');
 
     try {
-      const response = await login(email, password);
+      console.log('Registering user:', { nombre, email, password, rol });
+      const response = await register(nombre, email, password, rol);
       
       if (response.ok) {
-        console.log('Login successful:', response);
-        localStorage.setItem('session', JSON.stringify({
-        userId: response.user.userId,
-        nombre: response.user.nombre,
-        permisos: response.user.permisos,
-      }));
-      navigate('/uploads');
-      } else {
-        console.log('Login failed:', response);
-        const errorData = await response.json();
-        setErrorMessage(errorData.message || 'Credenciales incorrectas.');
+        //TODO: no se que pasaría después del registro por ahora
       }
     } catch (error) {
-      console.error('Error durante el inicio de sesión:', error);
-      setErrorMessage('Ocurrió un error durante el inicio de sesión.');
+      console.error('Error durante el registro:', error);
+      setErrorMessage('Ocurrió un error durante el registro.');
     }
   };
 
@@ -76,10 +76,19 @@ function Login() {
         color: '#fff',
         borderBottom: '1px solid #e5e7eb'
       }}>
-        <h2 style={{ margin: 0, fontSize: 18, fontWeight: 600 }}>Iniciar Sesión</h2>
+        <h2 style={{ margin: 0, fontSize: 18, fontWeight: 600 }}>Registrar Usuario</h2>
       </div>
       <main className="login-contenedor">
         <form className="login-form-login" onSubmit={handleSubmit}>
+          <label>Nombre</label>
+          <input
+            type="text"
+            id="nombre"
+            placeholder="Nombre completo"
+            required
+            value={nombre}
+            onChange={(e) => setNombre(e.target.value)}
+          />
           <label htmlFor="email">Correo Electrónico</label>
           <input
             type="email"
@@ -98,12 +107,27 @@ function Login() {
             value={password}
             onChange={(e) => setPassword(e.target.value)}
           />
+
+        <label>Rol: </label>
+        <select
+            value={rol}
+            onChange={(e) => setRol(e.target.value)}
+        >
+        {[
+        { value: 'EJECUTIVO', label: 'Ejecutivo de cuentas' },
+        { value: 'GERENCIA', label: 'Gerente' },
+        ].map((rol) => (
+            <option key={rol.value} value={rol.value}>
+                {rol.label}
+            </option>
+        ))}
+        </select>
           {errorMessage && <p className="login-error-message">{errorMessage}</p>}
-          <button type="submit" className="login-btn">Iniciar Sesión</button>
+          <button type="submit" className="login-btn">Registrar</button>
         </form>
       </main>
     </>
   );
 }
 
-export default Login;
+export default Register;
