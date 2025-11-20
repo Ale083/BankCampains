@@ -7,7 +7,7 @@ const kpiNum = require('./controller/kpis/kpiNum');
 const kpiTablas = require('./controller/kpis/kpiTablas');
 const uploadCsv = require('./controller/uploads/uploadCsv');
 const btw = require('./controller/filters/btw');
-const devSessionRouter   = require('./controller/auth/devSession');
+const auth   = require('./controller/auth/auth');
 const savedFiltersRouter = require('./controller/filters/savedFilters');
 const contacts = require('./controller/contacts/contacts')
 const clearContacts = require('./controller/contacts/clear')
@@ -22,7 +22,7 @@ app.use('/kpis', kpiNum);
 app.use('/kpis', kpiTablas);
 app.use('/api/uploads', uploadCsv);
 app.use('/api/btw', btw);
-app.use('/api/dev', devSessionRouter);             
+app.use('/api/auth', auth);   
 app.use('/api/saved-filters', savedFiltersRouter);  
 app.use('/api/contacts', contacts);
 app.use('/api/contacts', clearContacts);

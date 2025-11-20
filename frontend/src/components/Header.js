@@ -194,7 +194,7 @@ const Header = ({ title = "Carga de datos", showNavbar = true }) => {
                   setHasValidData(false);
                   setDisabledByClear(true);
                   localStorage.setItem('dataCleared', '1');
-                  navigate('/');
+                  navigate('/uploads');
 
                   
                   fetch('/api/contacts/clear', { method: 'DELETE' })
