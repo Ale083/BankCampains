@@ -11,8 +11,18 @@ import { fetchKPIs } from "./fetchKPIs";
 import { listPresets, mergeFiltersAND } from "../filters/utils";
 import { listSavedFilters } from "../api/savedFilters";
 import { mongoFilterToQuery } from "../filters/qsFromMongo";
+import { useNavigate } from "react-router-dom";
+import AccessFacade from "../auth/AccessFacade";
 
 export default function Dashboard() {
+  const navigate = useNavigate();
+  useEffect(() => {
+    if(!AccessFacade.puedeVerDashboard()){
+      alert("Usuario sin permisos para ver el dashboard");
+      navigate(-1);
+    }
+  }, []);
+  
   const [presets, setPresets] = useState(() => listPresets());
   const [active, setActive] = useState({});
   const [dbFilters, setDbFilters] = useState([]);
@@ -36,6 +46,8 @@ export default function Dashboard() {
   const RefImpactoHistorial = useRef(null);
   const RefIndiceEficiencia = useRef(null);
   const RefFiltros = useRef(null);
+
+
 
   useEffect(() => {
     setPresets(listPresets());
