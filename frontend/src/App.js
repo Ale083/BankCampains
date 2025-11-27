@@ -9,6 +9,7 @@ import FilterBuilder from './filters/FilterBuilder';
 import Explorer from './explorer/Explorer';
 import Login from './auth/login';
 import Register from './auth/register';
+import AssociatedData from './dashboard/AssociatedData';
 
 
 export default function App() {
@@ -27,6 +28,7 @@ export default function App() {
         <Route path="/filtros" element={<FilterBuilder />} />
         <Route path="/explorador" element={<Explorer />} />
         <Route path="/historial" element={<Historial />} />
+        <Route path="/datos-asociados" element={<AssociatedData />} />
         <Route path="*" element={<Navigate to={'/'} replace />} />
         <Route path="/login" element={<Login />} />
         <Route path="/register" element={<Register />} />

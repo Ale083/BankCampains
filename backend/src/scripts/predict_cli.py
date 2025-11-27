@@ -86,9 +86,11 @@ def predict_from_values(
     fila = pd.DataFrame([data_dict])
     proba = model.predict_proba(fila)[0, 1]
     clase = int(proba >= thr)
-    if proba < 0.25:
+    
+    # Clasificación de nivel según probabilidad (REQ-4)
+    if proba < 0.5:
         nivel = "Baja"
-    elif proba < 0.5:
+    elif proba < 0.75:
         nivel = "Media"
     else:
         nivel = "Alta"
