@@ -9,7 +9,8 @@ import FilterBuilder from './filters/FilterBuilder';
 import Explorer from './explorer/Explorer';
 import Login from './auth/login';
 import Register from './auth/register';
-
+import CaseAnalysisPage from './cases/CaseAnalysisPage';
+import WhatIfPage from './cases/WhatIfPage';
 
 export default function App() {
 
@@ -30,6 +31,8 @@ export default function App() {
         <Route path="*" element={<Navigate to={'/'} replace />} />
         <Route path="/login" element={<Login />} />
         <Route path="/register" element={<Register />} />
+        <Route path="/analisis-casos" element={<CaseAnalysisPage />} />
+        <Route path="/que-pasaria-si" element={<WhatIfPage />} />
       </Routes>
     </div>
   );

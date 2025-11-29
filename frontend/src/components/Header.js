@@ -155,8 +155,11 @@ const Header = ({ title = "Carga de datos", showNavbar = true }) => {
             { to: '/', label: 'Carga de Datos', enabled: true, requirement: '', clearData: true },
             { to: '/dashboardKPIs', label: 'Dashboard', enabled: hasValidData && !disabledByClear, requirement: 'datos válidos' },
             { to: '/explorador', label: 'Explorador', enabled: hasValidData && !disabledByClear, requirement: 'datos válidos' },
+            { to: '/analisis-casos', label: 'Análisis de casos', enabled: true, requirement: '' },
             { to: '/historial', label: 'Historial', enabled: true, requirement: '' },
           ].map(link => (
+
+
             <NavLink
               key={link.to}
               to={link.enabled ? link.to : '#'}
