@@ -1,3 +1,4 @@
+// frontend/src/cases/CaseAnalysisPage.js
 import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import Header from '../components/Header';
@@ -17,10 +18,8 @@ import {
 
 import { predictProbability } from '../api/model';
 
-
-
 const DATASET_AVG = {
-  age: numericStats.age.mean, 
+  age: numericStats.age.mean,
   prob: 0.21,
 };
 
@@ -101,12 +100,11 @@ const btnSecondary = {
   cursor: 'pointer',
 };
 
-
 const INITIAL_CLIENT = {
   age: Math.round(DATASET_AVG.age),
   job: categoricalOptions.job[0],
   marital: categoricalOptions.marital[2],
-  education: categoricalOptions.education[3], 
+  education: categoricalOptions.education[3],
   default: 'no',
   housing: 'no',
   loan: 'no',
@@ -123,7 +121,6 @@ const INITIAL_CLIENT = {
   euribor3m: Number(numericStats.euribor3m.mean.toFixed(3)),
   nr_employed: Number(numericStats['nr.employed'].mean.toFixed(1)),
 };
-
 
 function interpretNumericFeature(key, value) {
   const cfg = numericFeatureConfig.find((f) => f.key === key);
@@ -233,6 +230,11 @@ const CaseAnalysisPage = () => {
   const [clientProb, setClientProb] = useState(null);
   const [clientProbLevel, setClientProbLevel] = useState(null);
   const [isCalculating, setIsCalculating] = useState(false);
+
+  // 🔹 NUEVOS ESTADOS para navegación a Datos Asociados
+  const [lastClientForPrediction, setLastClientForPrediction] = useState(null);
+  const [lastProbabilityResult, setLastProbabilityResult] = useState(null);
+
   const navigate = useNavigate();
 
   const handleChange = (field) => (e) => {
@@ -249,21 +251,57 @@ const CaseAnalysisPage = () => {
     }));
   };
 
-  const handleSaveClient = async () => {
-    setSavedClient(draftClient);
+ const handleSaveClient = async () => {
+  setSavedClient(draftClient);
 
-    try {
-      setIsCalculating(true);
-      const { probability, level } = await predictProbability(draftClient);
-      setClientProb(probability);
-      setClientProbLevel(level || null);
-    } catch (err) {
-      console.error(err);
-      alert('Error al calcular la probabilidad del cliente.');
-    } finally {
-      setIsCalculating(false);
-    }
-  };
+  try {
+    setIsCalculating(true);
+
+    const result = await predictProbability(draftClient);
+
+    // 🔹 Normalizamos el resultado venga como venga
+    const prob =
+      result.probabilidad ??
+      result.probability ??
+      result.proba ??
+      0;
+
+    const level =
+      result.nivel ??
+      result.level ??
+      null;
+
+    const threshold =
+      result.threshold_usado ??
+      result.threshold_used ??
+      result.threshold ??
+      0.25;
+
+    const clase =
+      result.clase ??
+      result.class ??
+      0;
+
+    // Lo que mostramos en la tabla
+    setClientProb(prob);
+    setClientProbLevel(level);
+
+    // Guardamos el cliente y el resultado NORMALIZADO
+    setLastClientForPrediction(draftClient);
+    setLastProbabilityResult({
+      probabilidad: prob,
+      nivel: level,
+      threshold_usado: threshold,
+      clase,
+    });
+  } catch (err) {
+    console.error(err);
+    alert('Error al calcular la probabilidad del cliente.');
+  } finally {
+    setIsCalculating(false);
+  }
+};
+
 
   const goToWhatIf = () => {
     if (!savedClient) {
@@ -272,6 +310,22 @@ const CaseAnalysisPage = () => {
     }
     navigate('/que-pasaria-si', {
       state: { client: savedClient, baseProb: clientProb },
+    });
+  };
+
+  // 🔹 NUEVO handler para ir a Datos Asociados
+  const handleGoToAssociatedData = () => {
+    if (!lastClientForPrediction || !lastProbabilityResult) {
+      alert('Primero define el cliente y calcula la probabilidad (botón "Guardar cliente base").');
+      return;
+    }
+
+    // Ajusta el path '/datos-asociados' al que tengas configurado en tus Routes
+    navigate('/datos-asociados', {
+      state: {
+        client: lastClientForPrediction,
+        probabilityData: lastProbabilityResult,
+      },
     });
   };
 
@@ -858,6 +912,16 @@ const CaseAnalysisPage = () => {
         <button type="button" style={btnSecondary} onClick={() => navigate(-1)}>
           Volver
         </button>
+
+        {/* 🔹 Nuevo botón para ir a Datos Asociados */}
+        <button
+          type="button"
+          style={btnSecondary}
+          onClick={handleGoToAssociatedData}
+        >
+          Ver datos asociados
+        </button>
+
         <button type="button" style={btnPrimary} onClick={goToWhatIf}>
           ¿Qué pasaría si?
         </button>
