@@ -3,6 +3,7 @@ import React, { useState, useEffect, useCallback } from 'react';
 import { useLocation, useNavigate } from 'react-router-dom';
 import Header from '../components/Header';
 import ProbabilityDisplay from '../components/ProbabilityDisplay';
+import JustificationDisplay from '../components/JustificationDisplay';
 import { ProbabilityInterpreter } from '../utils/probabilityStrategies';
 import { predictProbability } from '../api/predictions';
 import './AssociatedData.css';
@@ -65,6 +66,7 @@ const AssociatedData = () => {
   // Cliente y probabilidad que vienen desde Análisis de casos (si vienen)
   const clientFromCases = location.state?.client || null;
   const probabilityFromCasesRaw = location.state?.probabilityData || null;
+  const topFeaturesFromCases = location.state?.probabilityData?.top_features || null;
 
   // Normalizamos lo que viene de Análisis de casos
   const probabilityFromCases = normalizeProbabilityData(probabilityFromCasesRaw);
@@ -96,38 +98,48 @@ const AssociatedData = () => {
   const effectiveProspectData = clientFromCases || mockProspectData;
 
   const [probabilityData, setProbabilityData] = useState(probabilityFromCases);
+  const [topFeatures, setTopFeatures] = useState(topFeaturesFromCases);
   const [loading, setLoading] = useState(!probabilityFromCases);
+  const [loadingJustification, setLoadingJustification] = useState(!topFeaturesFromCases);
   const [error, setError] = useState(null);
+  const [hasLoaded, setHasLoaded] = useState(false);
 
-  const loadProbability = useCallback(async () => {
-    // Si ya traíamos la probabilidad desde Análisis de casos, no recalculemos
-    if (probabilityFromCases) {
-      setLoading(false);
-      return;
-    }
-
-    setLoading(true);
-    setError(null);
-    try {
-      const rawResult = await predictProbability(effectiveProspectData);
-
-      // 🔹 Normalizamos también lo que devuelve el backend aquí
-      const normalized = normalizeProbabilityData(rawResult);
-      setProbabilityData(normalized);
-    } catch (err) {
-      setError(
-        'Error al calcular la probabilidad. Por favor, intenta de nuevo.'
-      );
-      console.error('Error loading probability:', err);
-    } finally {
-      setLoading(false);
-    }
-  }, [effectiveProspectData, probabilityFromCases]);
-
-  // Cargar probabilidad al montar el componente
+  
   useEffect(() => {
+    const loadProbability = async () => {
+     
+      if (hasLoaded || (probabilityFromCases && topFeaturesFromCases)) {
+        return;
+      }
+
+      setHasLoaded(true);
+      setError(null);
+      setLoading(!probabilityFromCases);
+      setLoadingJustification(!topFeaturesFromCases);
+
+      try {
+        const rawResult = await predictProbability(effectiveProspectData);
+
+       
+        const normalized = probabilityFromCases || normalizeProbabilityData(rawResult);
+        setProbabilityData(normalized);
+        
+       
+        const features = rawResult?.top_features || null;
+        setTopFeatures(features);
+      } catch (err) {
+        setError(
+          'Error al calcular la probabilidad. Por favor, intenta de nuevo.'
+        );
+        console.error('Error loading probability:', err);
+      } finally {
+        setLoading(false);
+        setLoadingJustification(false);
+      }
+    };
+
     loadProbability();
-  }, [loadProbability]);
+  }, [effectiveProspectData, probabilityFromCases, topFeaturesFromCases, hasLoaded]);
 
   // Obtener interpretación de la probabilidad usando Strategy Pattern
   const getInterpretation = () => {
@@ -141,6 +153,28 @@ const AssociatedData = () => {
     <div style={{ minHeight: '100vh', background: '#f9fafb' }}>
       <Header title="Datos Asociados" />
 
+      {/* Componente de justificación */}
+      <div style={{ padding: '24px 32px 0 32px' }}>
+        {(loadingJustification || !topFeatures) ? (
+          <div style={{
+            background: '#f9fafb',
+            border: '1px solid #d1d5db',
+            borderRadius: 12,
+            padding: 24,
+            textAlign: 'center',
+            color: '#6b7280'
+          }}>
+            <p>Calculando justificación...</p>
+          </div>
+        ) : (
+          <JustificationDisplay
+            top_features={topFeatures}
+            probabilidad={probabilityData?.probabilidad}
+            nivel={probabilityData?.nivel}
+          />
+        )}
+      </div>
+
       <div
         style={{
           padding: '24px 16px',
@@ -148,7 +182,7 @@ const AssociatedData = () => {
           margin: '0 auto',
         }}
       >
-        {loading && (
+        {(loading && !probabilityFromCases) && (
           <div
             style={{
               display: 'flex',
@@ -178,7 +212,7 @@ const AssociatedData = () => {
           </div>
         )}
 
-        {!loading && !error && probabilityData && interpretation && (
+        {(!loading || probabilityFromCases) && !error && probabilityData && interpretation && (
           <>
             <div
               style={{
