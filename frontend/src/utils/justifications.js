@@ -124,9 +124,9 @@ export function generarJustificacion(top_features) {
       
       const variableEsp = variableNames[variable] || variable;
       
-      // Verificar si el valor es válido y numérico
+      
       if (value !== undefined && value !== null && !isNaN(value) && value >= -100 && value <= 10000) {
-        // Formatear números decimales para mostrar máximo 2 decimales
+       
         const formattedValue = Number(value) % 1 === 0 ? value : Number(value).toFixed(2);
         return `El cliente tiene ${variableEsp} de ${formattedValue}`;
       }
