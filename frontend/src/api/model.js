@@ -31,6 +31,7 @@ export async function predictProbability(clientData) {
     classLabel: raw.clase ?? raw.predicted_class ?? null,
     level: raw.nivel ?? null,
     thresholdUsed: raw.threshold_usado ?? raw.threshold ?? null,
+    factoresInfluyentes: raw.factores_influyentes ?? null,
     raw, 
   };
 }
