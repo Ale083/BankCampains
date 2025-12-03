@@ -9,7 +9,7 @@ import FilterBuilder from './filters/FilterBuilder';
 import Explorer from './explorer/Explorer';
 import Login from './auth/login';
 import Register from './auth/register';
-import AssociatedData from './dashboard/AssociatedData';
+import AssociatedData from './cases/AssociatedData';
 import CaseAnalysisPage from './cases/CaseAnalysisPage';
 import WhatIfPage from './cases/WhatIfPage';
 
