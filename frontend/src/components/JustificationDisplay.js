@@ -8,12 +8,9 @@ import { useNavigate } from 'react-router-dom';
 const JustificationDisplay = ({ top_features, probabilidad, nivel }) => {
   const navigate = useNavigate();
 
-  useEffect(() => {
-    if(!AccessFacade.puedeAnalizarValoresInfluyentes()){
-      alert("Usuario sin permisos para analizar valores influyentes");
-      navigate(-1);
-    }
-  }, []);
+  if (!AccessFacade.puedeAnalizarValoresInfluyentes()) {
+    return null;
+  }
 
   if (!top_features || !Array.isArray(top_features) || top_features.length === 0 || 
       probabilidad === null || probabilidad === undefined) {

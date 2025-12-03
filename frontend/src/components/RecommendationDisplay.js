@@ -1,17 +1,12 @@
 // frontend/src/components/RecommendationDisplay.js
-import React, { useEffect } from 'react';
-import { useNavigate } from 'react-router-dom';
+import React from 'react';
 import AccessFacade from '../auth/AccessFacade.js';
 
 const RecommendationDisplay = ({ probabilidad }) => {
-  const navigate = useNavigate();
-
-  useEffect(() => {
-    if(!AccessFacade.puedeVerRecomendacionSugerida()){
-      alert("Usuario sin permisos para ver recomendaciones");
-      navigate(-1);
-    }
-  }, []);
+  // Verificar permisos - si no tiene permisos, no mostrar nada
+  if (!AccessFacade.puedeVerRecomendacionSugerida()) {
+    return null;
+  }
 
   if (probabilidad === null || probabilidad === undefined) {
     return null;
