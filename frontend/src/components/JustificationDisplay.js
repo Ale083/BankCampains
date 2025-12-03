@@ -1,8 +1,16 @@
 // frontend/src/components/JustificationDisplay.js
 import React from 'react';
 import { generarJustificacion } from '../utils/justifications';
+import AccessFacade from '../auth/AccessFacade.js';
+import { useEffect } from 'react';
+import { useNavigate } from 'react-router-dom';
 
 const JustificationDisplay = ({ top_features, probabilidad, nivel }) => {
+  const navigate = useNavigate();
+
+  if (!AccessFacade.puedeAnalizarValoresInfluyentes()) {
+    return null;
+  }
 
   if (!top_features || !Array.isArray(top_features) || top_features.length === 0 || 
       probabilidad === null || probabilidad === undefined) {
@@ -84,36 +92,6 @@ const JustificationDisplay = ({ top_features, probabilidad, nivel }) => {
           No se pudo generar la justificación para esta predicción.
         </p>
       )}
-
-      {/* Acción recomendada */}
-      <div style={{
-        marginTop: 24,
-        padding: 16,
-        backgroundColor: percentage < 30 ? '#fef3f2' : percentage < 60 ? '#fffbeb' : '#f0f9ff',
-        border: `1px solid ${percentage < 30 ? '#fecaca' : percentage < 60 ? '#fcd34d' : '#93c5fd'}`,
-        borderRadius: 8
-      }}>
-        <h5 style={{
-          margin: '0 0 8px 0',
-          fontSize: 16,
-          fontWeight: 600,
-          color: percentage < 30 ? '#991b1b' : percentage < 60 ? '#92400e' : '#1e40af'
-        }}>
-          Acción recomendada:
-        </h5>
-        <p style={{
-          margin: 0,
-          fontSize: 14,
-          color: percentage < 30 ? '#7f1d1d' : percentage < 60 ? '#78350f' : '#1e3a8a',
-          lineHeight: 1.5
-        }}>
-          {percentage < 30 
-            ? "No priorizar seguimiento - Probabilidad baja de conversión"
-            : percentage < 60 
-            ? "Segundo intento - Probabilidad moderada, considerar estrategia alternativa"
-            : "Contacto inmediato - Alta probabilidad de conversión"}
-        </p>
-      </div>
     </div>
   );
 };

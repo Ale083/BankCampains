@@ -12,25 +12,18 @@ ARTEFACT_PATH = os.path.join(BASE_DIR, "artefacto.pkl")
 artefacto_cargado = joblib.load(ARTEFACT_PATH)
 
 def get_original_value(feature_name, data_dict):
-    """
-    Extrae el valor original del diccionario data_dict basado en el nombre de la feature transformada.
-    """
+
     if feature_name.startswith("cat__"):
-        # Para features categóricas, devolver 1 si la feature está activa
         return 1.0
     elif feature_name.startswith("num__"):
-        # Para features numéricas, extraer la variable original
         var_name = feature_name.replace("num__", "")
-        # Buscar directamente en data_dict
         if var_name in data_dict:
             return float(data_dict[var_name])
-        # Si no existe, buscar con puntos en lugar de guiones bajos
         var_name_dots = var_name.replace("_", ".")
         if var_name_dots in data_dict:
             return float(data_dict[var_name_dots])
         return 0.0
     else:
-        # Para cualquier otra feature, devolver 1 si está activa
         return 1.0
 
 def identificar_factores_influyentes(data_dict, probabilidad, nivel, artefacto):
@@ -41,53 +34,61 @@ def identificar_factores_influyentes(data_dict, probabilidad, nivel, artefacto):
     try:
         model = artefacto["model"]
         
-        # Crear DataFrame con la fila del cliente original
+       
         fila_original = pd.DataFrame([data_dict])
         prob_original = model.predict_proba(fila_original)[0, 1]
         
-        # Obtener los nombres de features después del preprocessing
+        
         feature_names = model.named_steps["preprocessor"].get_feature_names_out()
         X_transformed = model.named_steps["preprocessor"].transform(fila_original)
         
         feature_impacts = []
         
-        # Para cada feature, calcular su impacto específico en este cliente
+        
         for i, feature_name in enumerate(feature_names):
             try:
-                # Solo considerar features que están "activas" en este cliente
+                
                 feature_value = X_transformed[0, i]
                 
-                if abs(feature_value) > 0.001:  # Feature está activa
-                    # Crear una copia de los datos transformados
+                if abs(feature_value) > 0.001: 
+                   
                     X_perturbed = X_transformed.copy()
                     
                     # "Apagar" esta feature (poner en 0)
                     X_perturbed[0, i] = 0
-                    
-                    # Calcular nueva predicción
+
+                   
                     prob_perturbed = model.named_steps["model"].predict_proba(X_perturbed)[0, 1]
                     
-                    # El impacto es la diferencia absoluta en probabilidad
-                    impact = abs(prob_original - prob_perturbed)
+                   
+                    impact_raw = prob_original - prob_perturbed
+                    impact_magnitude = abs(impact_raw)
                     
-                    # Obtener el valor original del diccionario data_dict
+                   
+                    # Si al "apagar" la feature la probabilidad baja, entonces la feature contribuye positivamente
+                    # Si al "apagar" la feature la probabilidad sube, entonces la feature contribuye negativamente
+                    impact_direction = "positive" if impact_raw > 0 else "negative"
+                    
+                    
                     original_raw_value = get_original_value(feature_name, data_dict)
                     
                     feature_impacts.append({
                         "feature_name": feature_name,
-                        "importance": float(impact),
+                        "importance": float(impact_magnitude),
+                        "direction": impact_direction,
+                        "impact_value": float(impact_raw),
                         "original_value": original_raw_value
                     })
                     
             except Exception as e:
-                # Si hay error con alguna feature específica, continuar
+                
                 continue
         
-        # Ordenar por impacto descendente y tomar top 10
+        # top 10
         feature_impacts.sort(key=lambda x: x["importance"], reverse=True)
         top_features = feature_impacts[:10]
         
-        # Solo devolver las que tienen impacto significativo
+        # devolver las que tienen impacto significativo
         significant_features = [f for f in top_features if f["importance"] > 0.001]
         
         return significant_features

@@ -4,6 +4,7 @@ import { useLocation, useNavigate } from 'react-router-dom';
 import Header from '../components/Header';
 import ProbabilityDisplay from '../components/ProbabilityDisplay';
 import JustificationDisplay from '../components/JustificationDisplay';
+import RecommendationDisplay from '../components/RecommendationDisplay';
 import { ProbabilityInterpreter } from '../utils/probabilityStrategies';
 import { predictProbability } from '../api/predictions';
 import './AssociatedData.css';
@@ -173,6 +174,13 @@ const AssociatedData = () => {
             nivel={probabilityData?.nivel}
           />
         )}
+      </div>
+
+      {/* Componente de recomendación */}
+      <div style={{ padding: '0 32px' }}>
+        <RecommendationDisplay
+          probabilidad={probabilityData?.probabilidad}
+        />
       </div>
 
       <div
