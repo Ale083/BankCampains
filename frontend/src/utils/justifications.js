@@ -11,6 +11,10 @@ export function generarJustificacion(top_features) {
   
   return topFive.map(feature => {
     const featureName = feature.feature_name;
+    const direction = feature.direction; 
+    const isPositive = direction === 'positive';
+    
+
     
 
     if (featureName.startsWith("cat__")) {
@@ -81,28 +85,28 @@ export function generarJustificacion(top_features) {
       
      
       if (variable === "job") {
-        return `El cliente trabaja como ${valorEsp}`;
+        return ` El cliente trabaja como ${valorEsp} ${isPositive ? '(favorece)' : '(desfavorece)'}`;
       } else if (variable === "marital") {
-        return `El cliente está ${valorEsp}`;
+        return ` El cliente está ${valorEsp} ${isPositive ? '(favorece)' : '(desfavorece)'}`;
       } else if (variable === "education") {
-        return `El cliente tiene ${valorEsp}`;
+        return ` El cliente tiene ${valorEsp} ${isPositive ? '(favorece)' : '(desfavorece)'}`;
       } else if (variable === "default") {
-        return `El cliente ${valorEsp === "no" ? "no tiene" : "tiene"} crédito en mora`;
+        return ` El cliente ${valorEsp === "no" ? "no tiene" : "tiene"} crédito en mora ${isPositive ? '(favorece)' : '(desfavorece)'}`;
       } else if (variable === "housing") {
-        return `El cliente ${valorEsp === "sí" ? "tiene" : "no tiene"} préstamo hipotecario`;
+        return ` El cliente ${valorEsp === "sí" ? "tiene" : "no tiene"} préstamo hipotecario ${isPositive ? '(favorece)' : '(desfavorece)'}`;
       } else if (variable === "loan") {
-        return `El cliente ${valorEsp === "sí" ? "tiene" : "no tiene"} préstamo personal`;
+        return ` El cliente ${valorEsp === "sí" ? "tiene" : "no tiene"} préstamo personal ${isPositive ? '(favorece)' : '(desfavorece)'}`;
       } else if (variable === "contact") {
-        return `El contacto se realizó por ${valorEsp}`;
+        return ` El contacto se realizó por ${valorEsp} ${isPositive ? '(favorece)' : '(desfavorece)'}`;
       } else if (variable === "month") {
-        return `El último contacto fue en ${valorEsp}`;
+        return ` El último contacto fue en ${valorEsp} ${isPositive ? '(favorece)' : '(desfavorece)'}`;
       } else if (variable === "day") {
-        return `El contacto se realizó un ${valorEsp}`;
+        return ` El contacto se realizó un ${valorEsp} ${isPositive ? '(favorece)' : '(desfavorece)'}`;
       } else if (variable === "poutcome") {
-        return `El resultado de la campaña anterior fue ${valorEsp}`;
+        return ` El resultado de la campaña anterior fue ${valorEsp} ${isPositive ? '(favorece)' : '(desfavorece)'}`;
       }
       
-      return `El cliente tiene ${variableEsp} "${valorEsp}"`;
+      return ` El cliente tiene ${variableEsp} "${valorEsp}" ${isPositive ? '(favorece)' : '(desfavorece)'}`;
     }
     
    
@@ -124,20 +128,20 @@ export function generarJustificacion(top_features) {
       
       const variableEsp = variableNames[variable] || variable;
       
-      
+      // Verificar si el valor es válido y numérico
       if (value !== undefined && value !== null && !isNaN(value) && value >= -100 && value <= 10000) {
-       
+        // Formatear números decimales para mostrar máximo 2 decimales
         const formattedValue = Number(value) % 1 === 0 ? value : Number(value).toFixed(2);
-        return `El cliente tiene ${variableEsp} de ${formattedValue}`;
+        return ` El cliente tiene ${variableEsp} de ${formattedValue} ${isPositive ? '(favorece)' : '(desfavorece)'}`;
       }
       
-      return `La variable ${variableEsp} del cliente es significativa`;
+      return ` La variable ${variableEsp} del cliente es significativa ${isPositive ? '(favorece)' : '(desfavorece)'}`;
     }
     
    
     const importance = feature.importance;
     const importancePercentage = (importance * 100).toFixed(2);
     
-    return `La característica "${featureName}" tiene un impacto del ${importancePercentage}% en la predicción`;
+    return ` La característica "${featureName}" tiene un impacto del ${importancePercentage}% en la predicción ${isPositive ? '(favorece)' : '(desfavorece)'}`;
   });
 }

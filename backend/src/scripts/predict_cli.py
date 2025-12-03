@@ -67,15 +67,23 @@ def identificar_factores_influyentes(data_dict, probabilidad, nivel, artefacto):
                     # Calcular nueva predicción
                     prob_perturbed = model.named_steps["model"].predict_proba(X_perturbed)[0, 1]
                     
-                    # El impacto es la diferencia absoluta en probabilidad
-                    impact = abs(prob_original - prob_perturbed)
+                    # El impacto es la diferencia en probabilidad
+                    impact_raw = prob_original - prob_perturbed
+                    impact_magnitude = abs(impact_raw)
+                    
+                    # Determinar si es positivo o negativo
+                    # Si al "apagar" la feature la probabilidad baja, entonces la feature contribuye positivamente
+                    # Si al "apagar" la feature la probabilidad sube, entonces la feature contribuye negativamente
+                    impact_direction = "positive" if impact_raw > 0 else "negative"
                     
                     # Obtener el valor original del diccionario data_dict
                     original_raw_value = get_original_value(feature_name, data_dict)
                     
                     feature_impacts.append({
                         "feature_name": feature_name,
-                        "importance": float(impact),
+                        "importance": float(impact_magnitude),
+                        "direction": impact_direction,
+                        "impact_value": float(impact_raw),
                         "original_value": original_raw_value
                     })
                     

@@ -38,10 +38,10 @@ const RecommendationDisplay = ({ probabilidad }) => {
         lineHeight: 1.5
       }}>
         {percentage < 30 
-          ? "No priorizar seguimiento - Probabilidad baja de conversión"
+          ? "No priorizar seguimiento"
           : percentage < 60 
-          ? "Segundo intento - Probabilidad moderada, considerar estrategia alternativa"
-          : "Contacto inmediato - Alta probabilidad de conversión"}
+          ? "Segundo intento - Seguimiento programado"
+          : "Contacto inmediato - Alta prioridad"}
       </p>
     </div>
   );
