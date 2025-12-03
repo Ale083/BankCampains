@@ -154,35 +154,6 @@ const AssociatedData = () => {
     <div style={{ minHeight: '100vh', background: '#f9fafb' }}>
       <Header title="Datos Asociados" />
 
-      {/* Componente de justificación */}
-      <div style={{ padding: '24px 32px 0 32px' }}>
-        {(loadingJustification || !topFeatures) ? (
-          <div style={{
-            background: '#f9fafb',
-            border: '1px solid #d1d5db',
-            borderRadius: 12,
-            padding: 24,
-            textAlign: 'center',
-            color: '#6b7280'
-          }}>
-            <p>Calculando justificación...</p>
-          </div>
-        ) : (
-          <JustificationDisplay
-            top_features={topFeatures}
-            probabilidad={probabilityData?.probabilidad}
-            nivel={probabilityData?.nivel}
-          />
-        )}
-      </div>
-
-      {/* Componente de recomendación */}
-      <div style={{ padding: '0 32px' }}>
-        <RecommendationDisplay
-          probabilidad={probabilityData?.probabilidad}
-        />
-      </div>
-
       <div
         style={{
           padding: '24px 16px',
@@ -222,11 +193,13 @@ const AssociatedData = () => {
 
         {(!loading || probabilityFromCases) && !error && probabilityData && interpretation && (
           <>
+            {/* Layout lado a lado: Probabilidad y Justificación */}
             <div
               style={{
                 display: 'grid',
                 gridTemplateColumns: 'repeat(auto-fit, minmax(400px, 1fr))',
                 gap: 24,
+                marginBottom: 24,
               }}
             >
               {/* Tarjeta de Probabilidad de Aceptación */}
@@ -239,7 +212,6 @@ const AssociatedData = () => {
                   display: 'flex',
                   flexDirection: 'column',
                   alignItems: 'center',
-                  gridColumn: '1 / -1',
                 }}
               >
                 <div
@@ -356,7 +328,49 @@ const AssociatedData = () => {
                 </div>
               </div>
 
-              {/* Aquí luego podrías mostrar un resumen del cliente effectiveProspectData */}
+              {/* Tarjeta de Justificación */}
+              <div
+                style={{
+                  background: '#fff',
+                  borderRadius: 12,
+                  padding: '32px 24px',
+                  boxShadow: '0 1px 3px rgba(0,0,0,0.1)',
+                }}
+              >
+                {(loadingJustification || !topFeatures) ? (
+                  <div style={{
+                    background: '#f9fafb',
+                    border: '1px solid #d1d5db',
+                    borderRadius: 12,
+                    padding: 24,
+                    textAlign: 'center',
+                    color: '#6b7280'
+                  }}>
+                    <p>Calculando justificación...</p>
+                  </div>
+                ) : (
+                  <JustificationDisplay
+                    top_features={topFeatures}
+                    probabilidad={probabilityData?.probabilidad}
+                    nivel={probabilityData?.nivel}
+                  />
+                )}
+              </div>
+            </div>
+
+            {/* Componente de recomendación - ancho completo */}
+            <div
+              style={{
+                background: '#fff',
+                borderRadius: 12,
+                padding: '24px',
+                boxShadow: '0 1px 3px rgba(0,0,0,0.1)',
+                marginBottom: 24,
+              }}
+            >
+              <RecommendationDisplay
+                probabilidad={probabilityData?.probabilidad}
+              />
             </div>
 
             {/* 🔹 Botón de volver a Análisis de casos (abajo a la derecha) */}
