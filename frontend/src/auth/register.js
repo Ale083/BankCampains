@@ -124,7 +124,9 @@ function Register() {
         </select>
           {errorMessage && <p className="login-error-message">{errorMessage}</p>}
           <button type="submit" className="login-btn">Registrar</button>
+          <button type="button" className="volver-btn" onClick={() => navigate(-1)}>Volver</button>
         </form>
+          
       </main>
     </>
   );
