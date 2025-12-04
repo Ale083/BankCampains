@@ -100,6 +100,19 @@ const btnSecondary = {
   cursor: 'pointer',
 };
 
+// 🔹 Límites según el Anexo A — Diccionario de Datos
+const NUMERIC_LIMITS = {
+  age: { min: 17, max: 98 },
+  campaign: { min: 1, max: 56 },
+  pdays: { min: 0, max: 999 },
+  previous: { min: 0, max: 7 },
+  emp_var_rate: { min: -3.4, max: 1.4 },
+  cons_price_idx: { min: 92.201, max: 94.767 },
+  cons_conf_idx: { min: -50.8, max: -26.9 },
+  euribor3m: { min: 0.634, max: 5.045 },
+  nr_employed: { min: 4963.6, max: 5228.1 },
+};
+
 const INITIAL_CLIENT = {
   age: Math.round(DATASET_AVG.age),
   job: categoricalOptions.job[0],
@@ -283,7 +296,19 @@ const CaseAnalysisPage = () => {
     let parsed = value;
 
     if (type === 'number') {
-      parsed = value === '' ? '' : Number(value);
+      if (value === '') {
+        parsed = '';
+      } else {
+        let num = Number(value);
+        const limits = NUMERIC_LIMITS[field];
+
+        if (limits) {
+          if (num < limits.min) num = limits.min;
+          if (num > limits.max) num = limits.max;
+        }
+
+        parsed = num;
+      }
     }
 
     setDraftClient((prev) => ({
@@ -420,6 +445,9 @@ const CaseAnalysisPage = () => {
         loan: savedClient.loan,
       })
     : '—';
+
+  // helper para no repetir min/max en cada input
+  const getLimits = (field) => NUMERIC_LIMITS[field] || {};
 
   return (
     <>
@@ -729,14 +757,14 @@ const CaseAnalysisPage = () => {
               fontSize: 14,
             }}
           >
+            {/* Edad */}
             <div>
               <label>
                 Edad
                 <br />
                 <input
                   type="number"
-                  min={17}
-                  max={98}
+                  {...getLimits('age')}
                   value={draftClient.age}
                   onChange={handleChange('age')}
                   style={{
@@ -962,8 +990,7 @@ const CaseAnalysisPage = () => {
                 <br />
                 <input
                   type="number"
-                  min={1}
-                  max={56}
+                  {...getLimits('campaign')}
                   value={draftClient.campaign}
                   onChange={handleChange('campaign')}
                   style={{
@@ -982,8 +1009,7 @@ const CaseAnalysisPage = () => {
                 <br />
                 <input
                   type="number"
-                  min={0}
-                  max={999}
+                  {...getLimits('pdays')}
                   value={draftClient.pdays}
                   onChange={handleChange('pdays')}
                   style={{
@@ -1002,8 +1028,7 @@ const CaseAnalysisPage = () => {
                 <br />
                 <input
                   type="number"
-                  min={0}
-                  max={7}
+                  {...getLimits('previous')}
                   value={draftClient.previous}
                   onChange={handleChange('previous')}
                   style={{
@@ -1046,6 +1071,7 @@ const CaseAnalysisPage = () => {
                 <input
                   type="number"
                   step="0.1"
+                  {...getLimits('emp_var_rate')}
                   value={draftClient.emp_var_rate}
                   onChange={handleChange('emp_var_rate')}
                   style={{
@@ -1065,6 +1091,7 @@ const CaseAnalysisPage = () => {
                 <input
                   type="number"
                   step="0.001"
+                  {...getLimits('cons_price_idx')}
                   value={draftClient.cons_price_idx}
                   onChange={handleChange('cons_price_idx')}
                   style={{
@@ -1084,6 +1111,7 @@ const CaseAnalysisPage = () => {
                 <input
                   type="number"
                   step="0.1"
+                  {...getLimits('cons_conf_idx')}
                   value={draftClient.cons_conf_idx}
                   onChange={handleChange('cons_conf_idx')}
                   style={{
@@ -1103,6 +1131,7 @@ const CaseAnalysisPage = () => {
                 <input
                   type="number"
                   step="0.001"
+                  {...getLimits('euribor3m')}
                   value={draftClient.euribor3m}
                   onChange={handleChange('euribor3m')}
                   style={{
@@ -1122,6 +1151,7 @@ const CaseAnalysisPage = () => {
                 <input
                   type="number"
                   step="0.1"
+                  {...getLimits('nr_employed')}
                   value={draftClient.nr_employed}
                   onChange={handleChange('nr_employed')}
                   style={{
