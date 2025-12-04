@@ -2,7 +2,7 @@ import { PERMISOS } from "./permisosEnum";
 
 const RBACService = (() => {
   const rolesPermisos = {
-    'GERENCIA': [
+    'EJECUTIVO': [
       PERMISOS.VER_CONSULTAS_POR_FILTRO,
       PERMISOS.VER_DASHBOARD,
       PERMISOS.REGISTRAR_USUARIOS,
@@ -12,7 +12,7 @@ const RBACService = (() => {
       PERMISOS.INTERPRETACION_PROB,
       PERMISOS.RECOMENDACION_SUGERIDA,
     ],
-    'EJECUTIVO': [
+    'GERENCIA': [
       PERMISOS.VER_CONSULTAS_POR_FILTRO,
       PERMISOS.VER_DASHBOARD,
       PERMISOS.VER_HISTORIAL,
