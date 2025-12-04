@@ -1,5 +1,5 @@
 // frontend/src/cases/CaseAnalysisPage.js
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import Header from '../components/Header';
 
@@ -122,6 +122,10 @@ const INITIAL_CLIENT = {
   nr_employed: Number(numericStats['nr.employed'].mean.toFixed(1)),
 };
 
+// 🔹 Claves para persistir en localStorage
+const BASE_CLIENT_KEY = 'bankApp_baseClient';
+const BASE_CLIENT_PROB_KEY = 'bankApp_baseClientProb';
+
 function interpretNumericFeature(key, value) {
   const cfg = numericFeatureConfig.find((f) => f.key === key);
   if (!cfg) return '—';
@@ -231,11 +235,48 @@ const CaseAnalysisPage = () => {
   const [clientProbLevel, setClientProbLevel] = useState(null);
   const [isCalculating, setIsCalculating] = useState(false);
 
-  // 🔹 NUEVOS ESTADOS para navegación a Datos Asociados
+  // 🔹 Estados para navegación a Datos Asociados
   const [lastClientForPrediction, setLastClientForPrediction] = useState(null);
   const [lastProbabilityResult, setLastProbabilityResult] = useState(null);
 
   const navigate = useNavigate();
+
+  // 🔹 Al montar la pantalla, intentamos recuperar el cliente base persistido
+  useEffect(() => {
+    try {
+      const storedClient = localStorage.getItem(BASE_CLIENT_KEY);
+      const storedProb = localStorage.getItem(BASE_CLIENT_PROB_KEY);
+
+      if (storedClient) {
+        const parsedClient = JSON.parse(storedClient);
+
+        setDraftClient(parsedClient);
+        setSavedClient(parsedClient);
+        setLastClientForPrediction(parsedClient);
+      }
+
+      if (storedProb) {
+        const parsedProb = JSON.parse(storedProb);
+
+        const prob =
+          parsedProb.probabilidad ??
+          parsedProb.probability ??
+          parsedProb.proba ??
+          null;
+
+        const level =
+          parsedProb.nivel ??
+          parsedProb.level ??
+          null;
+
+        setClientProb(prob);
+        setClientProbLevel(level);
+        setLastProbabilityResult(parsedProb);
+      }
+    } catch (e) {
+      console.error('Error leyendo cliente base desde localStorage', e);
+    }
+  }, []);
 
   const handleChange = (field) => (e) => {
     const { type, value } = e.target;
@@ -251,57 +292,75 @@ const CaseAnalysisPage = () => {
     }));
   };
 
- const handleSaveClient = async () => {
-  setSavedClient(draftClient);
-
-  try {
-    setIsCalculating(true);
-
-    const result = await predictProbability(draftClient);
-
-    // 🔹 Normalizamos el resultado venga como venga
-    const prob =
-      result.probabilidad ??
-      result.probability ??
-      result.proba ??
-      0;
-
-    const level =
-      result.nivel ??
-      result.level ??
-      null;
-
-    const threshold =
-      result.threshold_usado ??
-      result.threshold_used ??
-      result.threshold ??
-      0.25;
-
-    const clase =
-      result.clase ??
-      result.class ??
-      0;
-
-    // Lo que mostramos en la tabla
-    setClientProb(prob);
-    setClientProbLevel(level);
-
-    // Guardamos el cliente y el resultado NORMALIZADO
+  const handleSaveClient = async () => {
+    // 1) Guardamos en estado local
+    setSavedClient(draftClient);
     setLastClientForPrediction(draftClient);
-    setLastProbabilityResult({
-      probabilidad: prob,
-      nivel: level,
-      threshold_usado: threshold,
-      clase,
-    });
-  } catch (err) {
-    console.error(err);
-    alert('Error al calcular la probabilidad del cliente.');
-  } finally {
-    setIsCalculating(false);
-  }
-};
 
+    // 2) Guardamos también en localStorage para que persista
+    try {
+      localStorage.setItem(BASE_CLIENT_KEY, JSON.stringify(draftClient));
+    } catch (e) {
+      console.error('Error guardando cliente base en localStorage', e);
+    }
+
+    try {
+      setIsCalculating(true);
+
+      const result = await predictProbability(draftClient);
+
+      // 🔹 Normalizamos el resultado venga como venga
+      const prob =
+        result.probabilidad ??
+        result.probability ??
+        result.proba ??
+        0;
+
+      const level =
+        result.nivel ??
+        result.level ??
+        null;
+
+      const threshold =
+        result.threshold_usado ??
+        result.threshold_used ??
+        result.threshold ??
+        0.25;
+
+      const clase =
+        result.clase ??
+        result.class ??
+        0;
+
+      // 3) Actualizamos estado para la UI
+      setClientProb(prob);
+      setClientProbLevel(level);
+
+      const normalizedResult = {
+        probabilidad: prob,
+        nivel: level,
+        threshold_usado: threshold,
+        clase,
+      };
+
+      setLastProbabilityResult(normalizedResult);
+
+      // 4) Guardamos también el resultado en localStorage
+      try {
+        localStorage.setItem(
+          BASE_CLIENT_PROB_KEY,
+          JSON.stringify(normalizedResult)
+        );
+      } catch (e) {
+        console.error('Error guardando probabilidad en localStorage', e);
+      }
+    } catch (err) {
+      console.error(err);
+      alert('Error al calcular la probabilidad del cliente.');
+    } finally {
+      setIsCalculating(false);
+    }
+  };
 
   const goToWhatIf = () => {
     if (!savedClient) {
@@ -313,14 +372,14 @@ const CaseAnalysisPage = () => {
     });
   };
 
-  // 🔹 NUEVO handler para ir a Datos Asociados
   const handleGoToAssociatedData = () => {
     if (!lastClientForPrediction || !lastProbabilityResult) {
-      alert('Primero define el cliente y calcula la probabilidad (botón "Guardar cliente base").');
+      alert(
+        'Primero define el cliente y calcula la probabilidad (botón "Guardar cliente base").'
+      );
       return;
     }
 
-    // Ajusta el path '/datos-asociados' al que tengas configurado en tus Routes
     navigate('/datos-asociados', {
       state: {
         client: lastClientForPrediction,
@@ -399,8 +458,16 @@ const CaseAnalysisPage = () => {
             </button>
           </div>
 
-          <h3 style={{ margin: '0 0 8px 0' }}>Comparador contra el cliente promedio</h3>
-          <p style={{ margin: '0 0 8px 0', fontSize: 13, color: '#4b5563' }}>
+          <h3 style={{ margin: '0 0 8px 0' }}>
+            Comparador contra el cliente promedio
+          </h3>
+          <p
+            style={{
+              margin: '0 0 8px 0',
+              fontSize: 13,
+              color: '#4b5563',
+            }}
+          >
             Para cada variable numérica se compara el valor del cliente contra el
             promedio del dataset y se genera una interpretación automática.
           </p>
@@ -467,16 +534,36 @@ const CaseAnalysisPage = () => {
 
                 return (
                   <tr key={cfg.key}>
-                    <td style={{ border: '1px solid #d1d5db', padding: '8px' }}>
+                    <td
+                      style={{
+                        border: '1px solid #d1d5db',
+                        padding: '8px',
+                      }}
+                    >
                       {cfg.label}
                     </td>
-                    <td style={{ border: '1px solid #d1d5db', padding: '8px' }}>
+                    <td
+                      style={{
+                        border: '1px solid #d1d5db',
+                        padding: '8px',
+                      }}
+                    >
                       {displayClient}
                     </td>
-                    <td style={{ border: '1px solid #d1d5db', padding: '8px' }}>
+                    <td
+                      style={{
+                        border: '1px solid #d1d5db',
+                        padding: '8px',
+                      }}
+                    >
                       {displayMean}
                     </td>
-                    <td style={{ border: '1px solid #d1d5db', padding: '8px' }}>
+                    <td
+                      style={{
+                        border: '1px solid #d1d5db',
+                        padding: '8px',
+                      }}
+                    >
                       {savedClient
                         ? cfg.key === 'age'
                           ? ageInterp
@@ -488,10 +575,20 @@ const CaseAnalysisPage = () => {
               })}
 
               <tr>
-                <td style={{ border: '1px solid #d1d5db', padding: '8px' }}>
+                <td
+                  style={{
+                    border: '1px solid #d1d5db',
+                    padding: '8px',
+                  }}
+                >
                   Probabilidad estimada
                 </td>
-                <td style={{ border: '1px solid #d1d5db', padding: '8px' }}>
+                <td
+                  style={{
+                    border: '1px solid #d1d5db',
+                    padding: '8px',
+                  }}
+                >
                   {clientProb != null ? clientProb.toFixed(2) : '—'}
                   {clientProbLevel && (
                     <span style={{ marginLeft: 4, fontSize: 12 }}>
@@ -499,18 +596,36 @@ const CaseAnalysisPage = () => {
                     </span>
                   )}
                 </td>
-                <td style={{ border: '1px solid #d1d5db', padding: '8px' }}>
+                <td
+                  style={{
+                    border: '1px solid #d1d5db',
+                    padding: '8px',
+                  }}
+                >
                   {DATASET_AVG.prob.toFixed(2)}
                 </td>
-                <td style={{ border: '1px solid #d1d5db', padding: '8px' }}>
+                <td
+                  style={{
+                    border: '1px solid #d1d5db',
+                    padding: '8px',
+                  }}
+                >
                   {probInterp}
                 </td>
               </tr>
             </tbody>
           </table>
 
-          <h3 style={{ margin: '16px 0 8px 0' }}>Interpretación de variables categóricas</h3>
-          <p style={{ margin: '0 0 8px 0', fontSize: 13, color: '#4b5563' }}>
+          <h3 style={{ margin: '16px 0 8px 0' }}>
+            Interpretación de variables categóricas
+          </h3>
+          <p
+            style={{
+              margin: '0 0 8px 0',
+              fontSize: 13,
+              color: '#4b5563',
+            }}
+          >
             Se describen las variables categóricas relevantes del cliente y su
             significado dentro del contexto del modelo.
           </p>
@@ -559,15 +674,34 @@ const CaseAnalysisPage = () => {
                 const value = savedClient ? savedClient[cfg.key] : null;
                 return (
                   <tr key={cfg.key}>
-                    <td style={{ border: '1px solid #d1d5db', padding: '8px' }}>
+                    <td
+                      style={{
+                        border: '1px solid #d1d5db',
+                        padding: '8px',
+                      }}
+                    >
                       {cfg.label}
                     </td>
-                    <td style={{ border: '1px solid #d1d5db', padding: '8px' }}>
+                    <td
+                      style={{
+                        border: '1px solid #d1d5db',
+                        padding: '8px',
+                      }}
+                    >
                       {value || '—'}
                     </td>
-                    <td style={{ border: '1px solid #d1d5db', padding: '8px' }}>
+                    <td
+                      style={{
+                        border: '1px solid #d1d5db',
+                        padding: '8px',
+                      }}
+                    >
                       {savedClient
-                        ? interpretCategoricalFeature(cfg.key, value, savedClient)
+                        ? interpretCategoricalFeature(
+                            cfg.key,
+                            value,
+                            savedClient
+                          )
                         : 'Defina y guarde un cliente para ver la interpretación.'}
                     </td>
                   </tr>
@@ -576,6 +710,7 @@ const CaseAnalysisPage = () => {
             </tbody>
           </table>
         </div>
+
         <div
           style={{
             flex: 2,
@@ -596,25 +731,37 @@ const CaseAnalysisPage = () => {
           >
             <div>
               <label>
-                Edad<br />
+                Edad
+                <br />
                 <input
                   type="number"
                   min={17}
                   max={98}
                   value={draftClient.age}
                   onChange={handleChange('age')}
-                  style={{ width: '100%', padding: 6, borderRadius: 4, border: '1px solid #d1d5db' }}
+                  style={{
+                    width: '100%',
+                    padding: 6,
+                    borderRadius: 4,
+                    border: '1px solid #d1d5db',
+                  }}
                 />
               </label>
             </div>
 
             <div>
               <label>
-                Trabajo (job)<br />
+                Trabajo (job)
+                <br />
                 <select
                   value={draftClient.job}
                   onChange={handleChange('job')}
-                  style={{ width: '100%', padding: 6, borderRadius: 4, border: '1px solid #d1d5db' }}
+                  style={{
+                    width: '100%',
+                    padding: 6,
+                    borderRadius: 4,
+                    border: '1px solid #d1d5db',
+                  }}
                 >
                   {categoricalOptions.job.map((opt) => (
                     <option key={opt} value={opt}>
@@ -627,11 +774,17 @@ const CaseAnalysisPage = () => {
 
             <div>
               <label>
-                Estado civil (marital)<br />
+                Estado civil (marital)
+                <br />
                 <select
                   value={draftClient.marital}
                   onChange={handleChange('marital')}
-                  style={{ width: '100%', padding: 6, borderRadius: 4, border: '1px solid #d1d5db' }}
+                  style={{
+                    width: '100%',
+                    padding: 6,
+                    borderRadius: 4,
+                    border: '1px solid #d1d5db',
+                  }}
                 >
                   {categoricalOptions.marital.map((opt) => (
                     <option key={opt} value={opt}>
@@ -644,11 +797,17 @@ const CaseAnalysisPage = () => {
 
             <div>
               <label>
-                Educación (education)<br />
+                Educación (education)
+                <br />
                 <select
                   value={draftClient.education}
                   onChange={handleChange('education')}
-                  style={{ width: '100%', padding: 6, borderRadius: 4, border: '1px solid #d1d5db' }}
+                  style={{
+                    width: '100%',
+                    padding: 6,
+                    borderRadius: 4,
+                    border: '1px solid #d1d5db',
+                  }}
                 >
                   {categoricalOptions.education.map((opt) => (
                     <option key={opt} value={opt}>
@@ -661,11 +820,17 @@ const CaseAnalysisPage = () => {
 
             <div>
               <label>
-                Default (default)<br />
+                Default (default)
+                <br />
                 <select
                   value={draftClient.default}
                   onChange={handleChange('default')}
-                  style={{ width: '100%', padding: 6, borderRadius: 4, border: '1px solid #d1d5db' }}
+                  style={{
+                    width: '100%',
+                    padding: 6,
+                    borderRadius: 4,
+                    border: '1px solid #d1d5db',
+                  }}
                 >
                   {categoricalOptions.default.map((opt) => (
                     <option key={opt} value={opt}>
@@ -678,11 +843,17 @@ const CaseAnalysisPage = () => {
 
             <div>
               <label>
-                Préstamo hipotecario (housing)<br />
+                Préstamo hipotecario (housing)
+                <br />
                 <select
                   value={draftClient.housing}
                   onChange={handleChange('housing')}
-                  style={{ width: '100%', padding: 6, borderRadius: 4, border: '1px solid #d1d5db' }}
+                  style={{
+                    width: '100%',
+                    padding: 6,
+                    borderRadius: 4,
+                    border: '1px solid #d1d5db',
+                  }}
                 >
                   {categoricalOptions.housing.map((opt) => (
                     <option key={opt} value={opt}>
@@ -695,11 +866,17 @@ const CaseAnalysisPage = () => {
 
             <div>
               <label>
-                Préstamo personal (loan)<br />
+                Préstamo personal (loan)
+                <br />
                 <select
                   value={draftClient.loan}
                   onChange={handleChange('loan')}
-                  style={{ width: '100%', padding: 6, borderRadius: 4, border: '1px solid #d1d5db' }}
+                  style={{
+                    width: '100%',
+                    padding: 6,
+                    borderRadius: 4,
+                    border: '1px solid #d1d5db',
+                  }}
                 >
                   {categoricalOptions.loan.map((opt) => (
                     <option key={opt} value={opt}>
@@ -712,11 +889,17 @@ const CaseAnalysisPage = () => {
 
             <div>
               <label>
-                Canal de contacto (contact)<br />
+                Canal de contacto (contact)
+                <br />
                 <select
                   value={draftClient.contact}
                   onChange={handleChange('contact')}
-                  style={{ width: '100%', padding: 6, borderRadius: 4, border: '1px solid #d1d5db' }}
+                  style={{
+                    width: '100%',
+                    padding: 6,
+                    borderRadius: 4,
+                    border: '1px solid #d1d5db',
+                  }}
                 >
                   {categoricalOptions.contact.map((opt) => (
                     <option key={opt} value={opt}>
@@ -729,11 +912,17 @@ const CaseAnalysisPage = () => {
 
             <div>
               <label>
-                Mes de contacto (month)<br />
+                Mes de contacto (month)
+                <br />
                 <select
                   value={draftClient.month}
                   onChange={handleChange('month')}
-                  style={{ width: '100%', padding: 6, borderRadius: 4, border: '1px solid #d1d5db' }}
+                  style={{
+                    width: '100%',
+                    padding: 6,
+                    borderRadius: 4,
+                    border: '1px solid #d1d5db',
+                  }}
                 >
                   {categoricalOptions.month.map((opt) => (
                     <option key={opt} value={opt}>
@@ -746,11 +935,17 @@ const CaseAnalysisPage = () => {
 
             <div>
               <label>
-                Día de la semana (day_of_week)<br />
+                Día de la semana (day_of_week)
+                <br />
                 <select
                   value={draftClient.day_of_week}
                   onChange={handleChange('day_of_week')}
-                  style={{ width: '100%', padding: 6, borderRadius: 4, border: '1px solid #d1d5db' }}
+                  style={{
+                    width: '100%',
+                    padding: 6,
+                    borderRadius: 4,
+                    border: '1px solid #d1d5db',
+                  }}
                 >
                   {categoricalOptions.day_of_week.map((opt) => (
                     <option key={opt} value={opt}>
@@ -763,53 +958,77 @@ const CaseAnalysisPage = () => {
 
             <div>
               <label>
-                Número de contactos en campaña (campaign)<br />
+                Número de contactos en campaña (campaign)
+                <br />
                 <input
                   type="number"
                   min={1}
                   max={56}
                   value={draftClient.campaign}
                   onChange={handleChange('campaign')}
-                  style={{ width: '100%', padding: 6, borderRadius: 4, border: '1px solid #d1d5db' }}
+                  style={{
+                    width: '100%',
+                    padding: 6,
+                    borderRadius: 4,
+                    border: '1px solid #d1d5db',
+                  }}
                 />
               </label>
             </div>
 
             <div>
               <label>
-                Días desde contacto previo (pdays)<br />
+                Días desde contacto previo (pdays)
+                <br />
                 <input
                   type="number"
                   min={0}
                   max={999}
                   value={draftClient.pdays}
                   onChange={handleChange('pdays')}
-                  style={{ width: '100%', padding: 6, borderRadius: 4, border: '1px solid #d1d5db' }}
+                  style={{
+                    width: '100%',
+                    padding: 6,
+                    borderRadius: 4,
+                    border: '1px solid #d1d5db',
+                  }}
                 />
               </label>
             </div>
 
             <div>
               <label>
-                Número de contactos previos (previous)<br />
+                Número de contactos previos (previous)
+                <br />
                 <input
                   type="number"
                   min={0}
                   max={7}
                   value={draftClient.previous}
                   onChange={handleChange('previous')}
-                  style={{ width: '100%', padding: 6, borderRadius: 4, border: '1px solid #d1d5db' }}
+                  style={{
+                    width: '100%',
+                    padding: 6,
+                    borderRadius: 4,
+                    border: '1px solid #d1d5db',
+                  }}
                 />
               </label>
             </div>
 
             <div>
               <label>
-                Resultado campaña previa (poutcome)<br />
+                Resultado campaña previa (poutcome)
+                <br />
                 <select
                   value={draftClient.poutcome}
                   onChange={handleChange('poutcome')}
-                  style={{ width: '100%', padding: 6, borderRadius: 4, border: '1px solid #d1d5db' }}
+                  style={{
+                    width: '100%',
+                    padding: 6,
+                    borderRadius: 4,
+                    border: '1px solid #d1d5db',
+                  }}
                 >
                   {categoricalOptions.poutcome.map((opt) => (
                     <option key={opt} value={opt}>
@@ -822,72 +1041,108 @@ const CaseAnalysisPage = () => {
 
             <div>
               <label>
-                Tasa variación empleo (emp.var.rate)<br />
+                Tasa variación empleo (emp.var.rate)
+                <br />
                 <input
                   type="number"
                   step="0.1"
                   value={draftClient.emp_var_rate}
                   onChange={handleChange('emp_var_rate')}
-                  style={{ width: '100%', padding: 6, borderRadius: 4, border: '1px solid #d1d5db' }}
+                  style={{
+                    width: '100%',
+                    padding: 6,
+                    borderRadius: 4,
+                    border: '1px solid #d1d5db',
+                  }}
                 />
               </label>
             </div>
 
             <div>
               <label>
-                Índice precios consumo (cons.price.idx)<br />
+                Índice precios consumo (cons.price.idx)
+                <br />
                 <input
                   type="number"
                   step="0.001"
                   value={draftClient.cons_price_idx}
                   onChange={handleChange('cons_price_idx')}
-                  style={{ width: '100%', padding: 6, borderRadius: 4, border: '1px solid #d1d5db' }}
+                  style={{
+                    width: '100%',
+                    padding: 6,
+                    borderRadius: 4,
+                    border: '1px solid #d1d5db',
+                  }}
                 />
               </label>
             </div>
 
             <div>
               <label>
-                Índice confianza consumidor (cons.conf.idx)<br />
+                Índice confianza consumidor (cons.conf.idx)
+                <br />
                 <input
                   type="number"
                   step="0.1"
                   value={draftClient.cons_conf_idx}
                   onChange={handleChange('cons_conf_idx')}
-                  style={{ width: '100%', padding: 6, borderRadius: 4, border: '1px solid #d1d5db' }}
+                  style={{
+                    width: '100%',
+                    padding: 6,
+                    borderRadius: 4,
+                    border: '1px solid #d1d5db',
+                  }}
                 />
               </label>
             </div>
 
             <div>
               <label>
-                Euribor 3 meses (euribor3m)<br />
+                Euribor 3 meses (euribor3m)
+                <br />
                 <input
                   type="number"
                   step="0.001"
                   value={draftClient.euribor3m}
                   onChange={handleChange('euribor3m')}
-                  style={{ width: '100%', padding: 6, borderRadius: 4, border: '1px solid #d1d5db' }}
+                  style={{
+                    width: '100%',
+                    padding: 6,
+                    borderRadius: 4,
+                    border: '1px solid #d1d5db',
+                  }}
                 />
               </label>
             </div>
 
             <div>
               <label>
-                Número de empleados (nr.employed)<br />
+                Número de empleados (nr.employed)
+                <br />
                 <input
                   type="number"
                   step="0.1"
                   value={draftClient.nr_employed}
                   onChange={handleChange('nr_employed')}
-                  style={{ width: '100%', padding: 6, borderRadius: 4, border: '1px solid #d1d5db' }}
+                  style={{
+                    width: '100%',
+                    padding: 6,
+                    borderRadius: 4,
+                    border: '1px solid #d1d5db',
+                  }}
                 />
               </label>
             </div>
           </div>
 
           <h4 style={{ marginTop: 18 }}>Segmentos del cliente</h4>
-          <ul style={{ marginTop: 4, color: '#4b5563', fontSize: 14 }}>
+          <ul
+            style={{
+              marginTop: 4,
+              color: '#4b5563',
+              fontSize: 14,
+            }}
+          >
             <li>
               Segmento por edad: <strong>{ageSegment}</strong>
             </li>
@@ -909,11 +1164,14 @@ const CaseAnalysisPage = () => {
           gap: 8,
         }}
       >
-        <button type="button" style={btnSecondary} onClick={() => navigate(-1)}>
+        <button
+          type="button"
+          style={btnSecondary}
+          onClick={() => navigate(-1)}
+        >
           Volver
         </button>
 
-        {/* 🔹 Nuevo botón para ir a Datos Asociados */}
         <button
           type="button"
           style={btnSecondary}

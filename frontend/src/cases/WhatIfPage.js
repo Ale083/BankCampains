@@ -9,7 +9,6 @@ import {
   labelDayOfWeek,
 } from '../utils/bankMetadata';
 
-
 const VARIABLE_CONFIG = [
   {
     key: 'age',
@@ -161,6 +160,10 @@ const btnSecondary = {
   cursor: 'pointer',
 };
 
+// 🔹 Claves compartidas con CaseAnalysisPage y AssociatedData
+const BASE_CLIENT_KEY = 'bankApp_baseClient';
+const BASE_CLIENT_PROB_KEY = 'bankApp_baseClientProb';
+
 function formatValue(key, value) {
   if (value === null || value === undefined || value === '') return '—';
 
@@ -178,41 +181,120 @@ const WhatIfPage = () => {
   const navigate = useNavigate();
   const location = useLocation();
 
-  const baseClient = location.state?.client || null;
-  const initialBaseProb = location.state?.baseProb ?? null;
+  // 🔹 Estado del cliente base: primero intentamos tomarlo de location.state
+  const [baseClient, setBaseClient] = useState(location.state?.client || null);
 
-  const [baseProb, setBaseProb] = useState(initialBaseProb);
-  const [selectedKey, setSelectedKey] = useState('contact'); 
+  // 🔹 Probabilidad base: primero intentamos tomarla de location.state
+  const initialBaseProbFromNav = location.state?.baseProb ?? null;
+  const [baseProb, setBaseProb] = useState(initialBaseProbFromNav);
+
+  const [hydrationDone, setHydrationDone] = useState(false);
+
+  const [selectedKey, setSelectedKey] = useState('contact');
   const [simValue, setSimValue] = useState('');
   const [isCalculating, setIsCalculating] = useState(false);
-  const [scenarios, setScenarios] = useState([]); 
+  const [scenarios, setScenarios] = useState([]);
 
+  // 🔹 1. Hidratar cliente base desde localStorage si no vino por navegación
   useEffect(() => {
-    if (!baseClient) {
-      alert(
-        'Para usar "¿Qué pasaría si?" primero debes definir un cliente en la pantalla de Análisis de casos.'
+    if (baseClient) {
+      // Ya tenemos cliente (desde navegación), solo marcamos que terminamos de hidratar
+      setHydrationDone(true);
+      return;
+    }
+
+    try {
+      const storedClient = localStorage.getItem(BASE_CLIENT_KEY);
+      if (storedClient) {
+        const parsed = JSON.parse(storedClient);
+        setBaseClient(parsed);
+      }
+    } catch (e) {
+      console.error(
+        'Error leyendo cliente base desde localStorage en WhatIfPage',
+        e
       );
+    } finally {
+      setHydrationDone(true);
     }
   }, [baseClient]);
 
+  // 🔹 2. Una vez que ya intentamos hidratar, si NO hay cliente, avisamos
   useEffect(() => {
-    if (!baseClient) return;
-    setSimValue(baseClient[selectedKey]);
-  }, [baseClient, selectedKey]);
+    if (!hydrationDone) return;
+    if (!baseClient) {
+      alert(
+        'Para usar "¿Qué pasaría si?" primero debes definir y guardar un cliente base en la pantalla de Análisis de casos.'
+      );
+    }
+  }, [hydrationDone, baseClient]);
 
+  // 🔹 3. Hidratar probabilidad base desde localStorage si no vino por navegación
+  useEffect(() => {
+    if (!hydrationDone) return;
+    if (baseProb != null) return; // ya la tenemos (navegación o cálculo previo)
+
+    try {
+      const storedProb = localStorage.getItem(BASE_CLIENT_PROB_KEY);
+      if (storedProb) {
+        const parsed = JSON.parse(storedProb);
+        const prob =
+          parsed.probabilidad ??
+          parsed.probability ??
+          parsed.proba ??
+          null;
+
+        if (prob != null) {
+          setBaseProb(Number(prob));
+          return;
+        }
+      }
+    } catch (e) {
+      console.error(
+        'Error leyendo probabilidad base desde localStorage en WhatIfPage',
+        e
+      );
+    }
+  }, [hydrationDone, baseProb]);
+
+  // 🔹 4. Sin probabilidad base aún -> la calculamos con el modelo
   useEffect(() => {
     const fetchBaseProb = async () => {
-      if (!baseClient || baseProb != null) return;
+      if (!hydrationDone) return;
+      if (!baseClient) return;
+      if (baseProb != null) return;
+
       try {
-        const { probability } = await predictProbability(baseClient);
-        setBaseProb(probability);
+        const result = await predictProbability(baseClient);
+        const prob =
+          result.probabilidad ??
+          result.probability ??
+          result.proba ??
+          result.prob ??
+          null;
+
+        if (prob != null) {
+          setBaseProb(Number(prob));
+        } else {
+          console.warn(
+            'Respuesta de predictProbability sin campo claro de probabilidad:',
+            result
+          );
+        }
       } catch (err) {
         console.error(err);
         alert('No se pudo calcular la probabilidad base del cliente.');
       }
     };
+
     fetchBaseProb();
-  }, [baseClient, baseProb]);
+  }, [hydrationDone, baseClient, baseProb]);
+
+  // 🔹 Sincronizar valor simulado cuando cambia la variable seleccionada o el cliente base
+  useEffect(() => {
+    if (!baseClient) return;
+    setSimValue(baseClient[selectedKey]);
+  }, [baseClient, selectedKey]);
 
   const selectedConfig = useMemo(
     () => VARIABLE_CONFIG.find((v) => v.key === selectedKey),
@@ -243,7 +325,13 @@ const WhatIfPage = () => {
 
     try {
       setIsCalculating(true);
-      const { probability: newProb } = await predictProbability(modifiedClient);
+      const result = await predictProbability(modifiedClient);
+      const newProb =
+        result.probabilidad ??
+        result.probability ??
+        result.proba ??
+        result.prob ??
+        0;
 
       const scenario = {
         variableKey: selectedKey,
@@ -251,7 +339,7 @@ const WhatIfPage = () => {
         oldValue: baseClient[selectedKey],
         newValue: modifiedClient[selectedKey],
         baseProb: baseProb,
-        newProb,
+        newProb: Number(newProb),
       };
 
       setScenarios((prev) => [scenario, ...prev]);
@@ -507,9 +595,10 @@ const WhatIfPage = () => {
                           style={{
                             marginLeft: 6,
                             fontSize: 12,
-                            color: s.newProb - s.baseProb >= 0
-                              ? '#047857'
-                              : '#b91c1c',
+                            color:
+                              s.newProb - s.baseProb >= 0
+                                ? '#047857'
+                                : '#b91c1c',
                           }}
                         >
                           {s.newProb - s.baseProb >= 0 ? '+' : ''}
@@ -533,7 +622,9 @@ const WhatIfPage = () => {
             minHeight: 320,
           }}
         >
-          <h3 style={{ marginTop: 0, marginBottom: 12 }}>Resumen del cliente</h3>
+          <h3 style={{ marginTop: 0, marginBottom: 12 }}>
+            Resumen del cliente
+          </h3>
 
           <div
             style={{
@@ -577,9 +668,7 @@ const WhatIfPage = () => {
 
             <div>
               <strong>Contacto:</strong>{' '}
-              {baseClient
-                ? formatValue('contact', baseClient.contact)
-                : '—'}
+              {baseClient ? formatValue('contact', baseClient.contact) : '—'}
             </div>
             <div>
               <strong>Contacto:</strong>{' '}
@@ -611,7 +700,9 @@ const WhatIfPage = () => {
 
             <div>
               <strong>Campaña previa:</strong>{' '}
-              {baseClient ? formatValue('poutcome', baseClient.poutcome) : '—'}
+              {baseClient
+                ? formatValue('poutcome', baseClient.poutcome)
+                : '—'}
             </div>
             <div>
               <strong>Campaña previa:</strong>{' '}
@@ -631,9 +722,7 @@ const WhatIfPage = () => {
             </div>
             <div style={{ marginTop: 12 }}>
               <strong>Última simulación:</strong>{' '}
-              {scenarios.length > 0
-                ? scenarios[0].newProb.toFixed(3)
-                : '—'}
+              {scenarios.length > 0 ? scenarios[0].newProb.toFixed(3) : '—'}
             </div>
           </div>
         </div>
