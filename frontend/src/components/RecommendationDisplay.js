@@ -2,8 +2,8 @@
 import React from 'react';
 import AccessFacade from '../auth/AccessFacade.js';
 
-const RecommendationDisplay = ({ probabilidad }) => {
-  // Verificar permisos - si no tiene permisos, no mostrar nada
+const RecommendationDisplay = ({ probabilidad, thresholds }) => {
+  
   if (!AccessFacade.puedeVerRecomendacionSugerida()) {
     return null;
   }
@@ -12,14 +12,55 @@ const RecommendationDisplay = ({ probabilidad }) => {
     return null;
   }
 
+
+  const defaultThresholds = {
+    contactoInmediato: 75,
+    segundoIntento: 50
+  };
+
+  const effectiveThresholds = thresholds || defaultThresholds;
   const percentage = Math.round(probabilidad * 100);
+
+  
+  const isHighPriority = percentage >= effectiveThresholds.contactoInmediato;
+  const isMediumPriority = percentage >= effectiveThresholds.segundoIntento && percentage < effectiveThresholds.contactoInmediato;
+  const isLowPriority = percentage < effectiveThresholds.segundoIntento;
+
+  const getRecommendationStyle = () => {
+    if (isHighPriority) return {
+      backgroundColor: '#f0f9ff',
+      borderColor: '#93c5fd',
+      titleColor: '#1e40af',
+      textColor: '#1e3a8a'
+    };
+    if (isMediumPriority) return {
+      backgroundColor: '#fffbeb',
+      borderColor: '#fcd34d',
+      titleColor: '#92400e',
+      textColor: '#78350f'
+    };
+    return {
+      backgroundColor: '#fef3f2',
+      borderColor: '#fecaca',
+      titleColor: '#991b1b',
+      textColor: '#7f1d1d'
+    };
+  };
+
+  const getRecommendationText = () => {
+    if (isHighPriority) return "Contacto inmediato - Alta prioridad";
+    if (isMediumPriority) return "Segundo intento - Seguimiento programado";
+    return "No priorizar seguimiento";
+  };
+
+  const styles = getRecommendationStyle();
 
   return (
     <div style={{
       marginTop: 24,
       padding: 16,
-      backgroundColor: percentage < 30 ? '#fef3f2' : percentage < 60 ? '#fffbeb' : '#f0f9ff',
-      border: `1px solid ${percentage < 30 ? '#fecaca' : percentage < 60 ? '#fcd34d' : '#93c5fd'}`,
+      backgroundColor: styles.backgroundColor,
+      border: `1px solid ${styles.borderColor}`,
       borderRadius: 12,
       boxShadow: '0 1px 3px rgba(0,0,0,0.1)'
     }}>
@@ -27,21 +68,25 @@ const RecommendationDisplay = ({ probabilidad }) => {
         margin: '0 0 8px 0',
         fontSize: 16,
         fontWeight: 600,
-        color: percentage < 30 ? '#991b1b' : percentage < 60 ? '#92400e' : '#1e40af'
+        color: styles.titleColor
       }}>
         Acción recomendada:
       </h5>
       <p style={{
         margin: 0,
         fontSize: 14,
-        color: percentage < 30 ? '#7f1d1d' : percentage < 60 ? '#78350f' : '#1e3a8a',
+        color: styles.textColor,
         lineHeight: 1.5
       }}>
-        {percentage < 30 
-          ? "No priorizar seguimiento"
-          : percentage < 60 
-          ? "Segundo intento - Seguimiento programado"
-          : "Contacto inmediato - Alta prioridad"}
+        {getRecommendationText()}
+      </p>
+      <p style={{
+        margin: '8px 0 0 0',
+        fontSize: 12,
+        color: '#6b7280',
+        fontStyle: 'italic'
+      }}>
+      
       </p>
     </div>
   );

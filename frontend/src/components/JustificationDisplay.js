@@ -65,7 +65,7 @@ const JustificationDisplay = ({ top_features, probabilidad, nivel }) => {
         color: '#1f2937',
         lineHeight: 1.6
       }}>
-        Esta probabilidad del {percentage}% es {nivel?.toLowerCase()} principalmente porque:
+        Esta probabilidad es de {percentage}%  principalmente porque:
       </p>
       
       {justifications && justifications.length > 0 ? (

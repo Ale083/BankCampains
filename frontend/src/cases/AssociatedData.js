@@ -7,6 +7,8 @@ import JustificationDisplay from '../components/JustificationDisplay';
 import RecommendationDisplay from '../components/RecommendationDisplay';
 import { ProbabilityInterpreter } from '../utils/probabilityStrategies';
 import { predictProbability } from '../api/predictions';
+import { clientEvaluator } from '../utils/clientEvaluationTemplate';
+import AccessFacade from '../auth/AccessFacade';
 import './AssociatedData.css';
 
 /**
@@ -104,6 +106,18 @@ const AssociatedData = () => {
   const [loadingJustification, setLoadingJustification] = useState(!topFeaturesFromCases);
   const [error, setError] = useState(null);
   const [hasLoaded, setHasLoaded] = useState(false);
+  
+  
+  const [templateMethodResult, setTemplateMethodResult] = useState(null);
+  const [useTemplateMethod] = useState(true); // Siempre usar Template Method
+  
+ 
+  const [showThresholdConfig, setShowThresholdConfig] = useState(false);
+  const [thresholds, setThresholds] = useState({
+    contactoInmediato: 75,
+    segundoIntento: 50,
+    noPriorizar: 50
+  });
 
   
   useEffect(() => {
@@ -119,15 +133,20 @@ const AssociatedData = () => {
       setLoadingJustification(!topFeaturesFromCases);
 
       try {
-        const rawResult = await predictProbability(effectiveProspectData);
-
-       
-        const normalized = probabilityFromCases || normalizeProbabilityData(rawResult);
+        
+        const fullResult = await clientEvaluator.evaluateClient(effectiveProspectData);
+        setTemplateMethodResult(fullResult);
+        
+        
+        const prediction = fullResult.prediction || {};
+        const normalized = probabilityFromCases || normalizeProbabilityData(prediction);
         setProbabilityData(normalized);
         
-       
-        const features = rawResult?.top_features || null;
+        
+        
+        const features = prediction.top_features || null;
         setTopFeatures(features);
+        
       } catch (err) {
         setError(
           'Error al calcular la probabilidad. Por favor, intenta de nuevo.'
@@ -142,7 +161,87 @@ const AssociatedData = () => {
     loadProbability();
   }, [effectiveProspectData, probabilityFromCases, topFeaturesFromCases, hasLoaded]);
 
-  // Obtener interpretación de la probabilidad usando Strategy Pattern
+  
+  useEffect(() => {
+    const STORAGE_KEY = 'bankCampains_contact_thresholds';
+    const saved = localStorage.getItem(STORAGE_KEY);
+    if (saved) {
+      try {
+        const parsed = JSON.parse(saved);
+        setThresholds({
+          contactoInmediato: Math.round((parsed.contactoInmediato || 0.75) * 100),
+          segundoIntento: Math.round((parsed.segundoIntento || 0.50) * 100),
+          noPriorizar: Math.round((parsed.noPriorizar || 0.50) * 100)
+        });
+      } catch (error) {
+        console.error('Error loading thresholds:', error);
+      }
+    }
+  }, []);
+
+ 
+  const updateThreshold = (key, value) => {
+    if (!AccessFacade.puedeDefinirValoresParametricos()) {
+      return;
+    }
+
+    const numValue = parseInt(value, 10);
+    if (isNaN(numValue) || numValue < 0 || numValue > 100) return;
+    
+    setThresholds(prev => {
+      const newThresholds = {
+        ...prev,
+        [key]: numValue
+      };
+      
+      
+      return newThresholds;
+    });
+  };
+
+  const saveThresholds = () => {
+    
+    if (!AccessFacade.puedeDefinirValoresParametricos()) {
+      alert('No tienes permisos para modificar los umbrales de contacto');
+      return;
+    }
+
+    if (thresholds.contactoInmediato <= thresholds.segundoIntento) {
+      alert('El umbral de "Contacto Inmediato" debe ser mayor que "Segundo Intento"');
+      return;
+    }
+
+    try {
+      const STORAGE_KEY = 'bankCampains_contact_thresholds';
+      const configForBackend = {
+        contactoInmediato: thresholds.contactoInmediato / 100,
+        segundoIntento: thresholds.segundoIntento / 100,
+        noPriorizar: thresholds.noPriorizar / 100
+      };
+
+      localStorage.setItem(STORAGE_KEY, JSON.stringify(configForBackend));
+      
+      
+      window.dispatchEvent(new CustomEvent('contactThresholdsUpdated', {
+        detail: configForBackend
+      }));
+
+      alert('Umbrales guardados exitosamente');
+      setShowThresholdConfig(false);
+    } catch (error) {
+      console.error('Error saving thresholds:', error);
+      alert('Error al guardar los umbrales');
+    }
+  };
+
+  const getActionForProbability = (probability) => {
+    const prob = probability * 100;
+    if (prob >= thresholds.contactoInmediato) return 'Contacto Inmediato';
+    if (prob >= thresholds.segundoIntento) return 'Segundo Intento';
+    return 'No Priorizar';
+  };
+
+
   const getInterpretation = () => {
     if (!probabilityData) return null;
     return ProbabilityInterpreter.interpret(probabilityData.probabilidad);
@@ -370,8 +469,194 @@ const AssociatedData = () => {
             >
               <RecommendationDisplay
                 probabilidad={probabilityData?.probabilidad}
+                thresholds={thresholds}
               />
+              
+              {/* Botón para cambiar umbrales - solo si tiene permisos */}
+              {AccessFacade.puedeDefinirValoresParametricos() && (
+                <div style={{ 
+                  marginTop: '16px', 
+                  paddingTop: '16px', 
+                  borderTop: '1px solid #e5e7eb',
+                  display: 'flex',
+                  justifyContent: 'center'
+                }}>
+                  <button
+                    onClick={() => setShowThresholdConfig(!showThresholdConfig)}
+                    style={{
+                      padding: '12px 20px',
+                      border: '1px solid #3b82f6',
+                      background: 'transparent',
+                      color: '#3b82f6',
+                      borderRadius: '8px',
+                      cursor: 'pointer',
+                      fontSize: '14px',
+                      fontWeight: '500',
+                      display: 'flex',
+                      flexDirection: 'column',
+                      alignItems: 'center',
+                      gap: '4px'
+                    }}
+                  >
+                    <span>Cambiar Umbrales</span>
+                    <span style={{ fontSize: '12px', fontWeight: '400', color: '#6b7280' }}>
+                      Contacto Inmediato: {thresholds.contactoInmediato}%-100% | 
+                      Segundo Intento: {thresholds.segundoIntento}%-{thresholds.contactoInmediato-1}% | 
+                      No Priorizar: 0%-{thresholds.segundoIntento-1}%
+                    </span>
+                  </button>
+                </div>
+              )}
             </div>
+
+            {/* Panel de configuración de umbrales - solo si tiene permisos */}
+            {showThresholdConfig && AccessFacade.puedeDefinirValoresParametricos() && (
+              <div
+                style={{
+                  background: '#fff',
+                  borderRadius: 12,
+                  padding: '24px',
+                  boxShadow: '0 1px 3px rgba(0,0,0,0.1)',
+                  marginBottom: 24,
+                  border: '2px solid #3b82f6'
+                }}
+              >
+                <h3 style={{ margin: '0 0 16px 0', color: '#1f2937', fontSize: '18px' }}>
+                  Cambiar Umbrales de Contacto
+                </h3>
+
+                <div style={{
+                  display: 'grid',
+                  gridTemplateColumns: 'repeat(auto-fit, minmax(180px, 1fr))',
+                  gap: '16px',
+                  marginBottom: '24px'
+                }}>
+                  {/* Contacto Inmediato */}
+                  <div style={{
+                    border: '2px solid #ef4444',
+                    borderRadius: '8px',
+                    padding: '16px',
+                    background: '#fef2f2'
+                  }}>
+                    <h4 style={{ margin: '0 0 8px 0', color: '#ef4444', fontSize: '14px', fontWeight: '600' }}>
+                      Contacto Inmediato
+                    </h4>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                      <input
+                        type="number"
+                        min="1"
+                        max="100"
+                        value={thresholds.contactoInmediato}
+                        onChange={(e) => updateThreshold('contactoInmediato', e.target.value)}
+                        style={{
+                          padding: '8px',
+                          border: '1px solid #ef4444',
+                          borderRadius: '4px',
+                          width: '60px',
+                          textAlign: 'center',
+                          fontSize: '14px',
+                          fontWeight: '600'
+                        }}
+                      />
+                      <span style={{ fontSize: '14px', color: '#ef4444' }}>% - 100%</span>
+                    </div>
+                  </div>
+
+                  {/* Segundo Intento */}
+                  <div style={{
+                    border: '2px solid #f59e0b',
+                    borderRadius: '8px',
+                    padding: '16px',
+                    background: '#fffbeb'
+                  }}>
+                    <h4 style={{ margin: '0 0 8px 0', color: '#f59e0b', fontSize: '14px', fontWeight: '600' }}>
+                      Segundo Intento
+                    </h4>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                      <input
+                        type="number"
+                        min="0"
+                        max="99"
+                        value={thresholds.segundoIntento}
+                        onChange={(e) => updateThreshold('segundoIntento', e.target.value)}
+                        style={{
+                          padding: '8px',
+                          border: '1px solid #f59e0b',
+                          borderRadius: '4px',
+                          width: '60px',
+                          textAlign: 'center',
+                          fontSize: '14px',
+                          fontWeight: '600'
+                        }}
+                      />
+                      <span style={{ fontSize: '14px', color: '#f59e0b' }}>% - {thresholds.contactoInmediato - 1}%</span>
+                    </div>
+                  </div>
+
+                  {/* No Priorizar */}
+                  <div style={{
+                    border: '2px solid #6b7280',
+                    borderRadius: '8px',
+                    padding: '16px',
+                    background: '#f9fafb'
+                  }}>
+                    <h4 style={{ margin: '0 0 8px 0', color: '#6b7280', fontSize: '14px', fontWeight: '600' }}>
+                      No Priorizar
+                    </h4>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                      <span style={{ 
+                        padding: '8px',
+                        border: '1px solid #d1d5db',
+                        borderRadius: '4px',
+                        width: '60px',
+                        textAlign: 'center',
+                        fontSize: '14px',
+                        background: '#f3f4f6',
+                        color: '#6b7280',
+                        fontWeight: '600'
+                      }}>
+                        0
+                      </span>
+                      <span style={{ fontSize: '14px', color: '#6b7280' }}>% - {thresholds.segundoIntento - 1}%</span>
+                    </div>
+                  </div>
+                </div>
+
+                {/* Botones de acción */}
+                <div style={{ display: 'flex', gap: '8px', justifyContent: 'flex-end' }}>
+                  <button
+                    onClick={() => setShowThresholdConfig(false)}
+                    style={{
+                      padding: '10px 16px',
+                      border: '1px solid #9ca3af',
+                      background: 'transparent',
+                      color: '#374151',
+                      borderRadius: '6px',
+                      cursor: 'pointer',
+                      fontSize: '14px'
+                    }}
+                  >
+                    Cancelar
+                  </button>
+                  
+                  <button
+                    onClick={saveThresholds}
+                    style={{
+                      padding: '10px 16px',
+                      border: 'none',
+                      background: '#3b82f6',
+                      color: 'white',
+                      borderRadius: '6px',
+                      cursor: 'pointer',
+                      fontWeight: '500',
+                      fontSize: '14px'
+                    }}
+                  >
+                     Guardar
+                  </button>
+                </div>
+              </div>
+            )}
 
             {/* 🔹 Botón de volver a Análisis de casos (abajo a la derecha) */}
             <div
