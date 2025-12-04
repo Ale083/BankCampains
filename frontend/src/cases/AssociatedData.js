@@ -23,7 +23,6 @@ import './AssociatedData.css';
 function normalizeProbabilityData(raw) {
   if (!raw) return null;
 
-  // Por si el wrapper devuelve { data: {...} }
   const data = raw.data ?? raw;
 
   const prob =
@@ -82,11 +81,6 @@ const mockProspectData = {
   nr_employed: 5228.1,
 };
 
-/**
- * Página para mostrar "Datos Asociados" - REQ-3 y REQ-4
- * Permite visualizar la probabilidad de aceptación del producto bancario
- * para un cliente ficticio que viene desde Análisis de casos (si existe).
- */
 const AssociatedData = () => {
   const location = useLocation();
   const navigate = useNavigate();
@@ -97,15 +91,18 @@ const AssociatedData = () => {
   const topFeaturesFromCases =
     location.state?.probabilityData?.top_features || null;
 
-  // Normalizamos lo que viene de Análisis de casos
-  const probabilityFromCases = normalizeProbabilityData(probabilityFromCasesRaw);
+  const probabilityFromCases = normalizeProbabilityData(
+    probabilityFromCasesRaw
+  );
 
-  // 🔹 Estado para el cliente efectivo que se va a evaluar
+  // Cliente efectivo
   const [effectiveProspectData, setEffectiveProspectData] = useState(
     clientFromCases || null
   );
 
-  const [probabilityData, setProbabilityData] = useState(probabilityFromCases);
+  const [probabilityData, setProbabilityData] = useState(
+    probabilityFromCases
+  );
   const [topFeatures, setTopFeatures] = useState(topFeaturesFromCases);
   const [loading, setLoading] = useState(!probabilityFromCases);
   const [loadingJustification, setLoadingJustification] = useState(
@@ -121,12 +118,11 @@ const AssociatedData = () => {
     noPriorizar: 50,
   });
 
-  // 🔹 Resolver de dónde viene el cliente:
-  // 1) Si viene desde Análisis de casos → se usa ese.
-  // 2) Si no viene, intentamos leer el cliente base guardado en localStorage.
-  // 3) Si tampoco hay guardado, caemos al mockProspectData.
+  // 🔹 Nuevo: umbral de decisión del modelo (para "Se predice Sí")
+  const [modelDecisionThreshold, setModelDecisionThreshold] = useState(75);
+
+  // Resolver cliente
   useEffect(() => {
-    // Si ya vino desde Análisis de casos, no hacemos nada
     if (clientFromCases) {
       return;
     }
@@ -145,13 +141,12 @@ const AssociatedData = () => {
       );
     }
 
-    // Fallback final: cliente mock
     setEffectiveProspectData(mockProspectData);
   }, [clientFromCases]);
 
+  // Calcular probabilidad si hace falta
   useEffect(() => {
     const loadProbability = async () => {
-      // Si ya cargamos una vez, o no tenemos todavía cliente, o ya tenemos todo desde Casos, no recalculemos.
       if (
         hasLoaded ||
         !effectiveProspectData ||
@@ -196,6 +191,7 @@ const AssociatedData = () => {
     hasLoaded,
   ]);
 
+  // Cargar thresholds y umbral de modelo desde localStorage
   useEffect(() => {
     const STORAGE_KEY = 'bankCampains_contact_thresholds';
     const saved = localStorage.getItem(STORAGE_KEY);
@@ -209,6 +205,12 @@ const AssociatedData = () => {
           segundoIntento: Math.round((parsed.segundoIntento || 0.5) * 100),
           noPriorizar: Math.round((parsed.noPriorizar || 0.5) * 100),
         });
+
+        if (parsed.modelDecisionUmbral != null) {
+          setModelDecisionThreshold(
+            Math.round((parsed.modelDecisionUmbral || 0.75) * 100)
+          );
+        }
       } catch (error) {
         console.error('Error loading thresholds:', error);
       }
@@ -221,15 +223,23 @@ const AssociatedData = () => {
     }
 
     const numValue = parseInt(value, 10);
-    if (isNaN(numValue) || numValue < 0 || numValue > 100) return;
+    if (Number.isNaN(numValue) || numValue < 0 || numValue > 100) return;
 
-    setThresholds((prev) => {
-      const newThresholds = {
-        ...prev,
-        [key]: numValue,
-      };
-      return newThresholds;
-    });
+    setThresholds((prev) => ({
+      ...prev,
+      [key]: numValue,
+    }));
+  };
+
+  const updateModelDecisionThreshold = (value) => {
+    if (!AccessFacade.puedeDefinirValoresParametricos()) {
+      return;
+    }
+
+    const numValue = parseInt(value, 10);
+    if (Number.isNaN(numValue) || numValue < 1 || numValue > 100) return;
+
+    setModelDecisionThreshold(numValue);
   };
 
   const saveThresholds = () => {
@@ -251,6 +261,7 @@ const AssociatedData = () => {
         contactoInmediato: thresholds.contactoInmediato / 100,
         segundoIntento: thresholds.segundoIntento / 100,
         noPriorizar: thresholds.noPriorizar / 100,
+        modelDecisionUmbral: modelDecisionThreshold / 100,
       };
 
       localStorage.setItem(STORAGE_KEY, JSON.stringify(configForBackend));
@@ -271,7 +282,14 @@ const AssociatedData = () => {
 
   const getInterpretation = () => {
     if (!probabilityData) return null;
-    return ProbabilityInterpreter.interpret(probabilityData.probabilidad);
+    // Aquí usamos el umbral configurable del modelo
+    return ProbabilityInterpreter.interpret(
+      probabilityData.probabilidad,
+      {
+        contactoInmediato: modelDecisionThreshold,
+        segundoIntento: thresholds.segundoIntento,
+      }
+    );
   };
 
   const interpretation = getInterpretation();
@@ -356,7 +374,6 @@ const AssociatedData = () => {
                     Probabilidad de Aceptación
                   </div>
 
-                  {/* Indicador de Probabilidad */}
                   <ProbabilityDisplay
                     probabilidad={probabilityData.probabilidad}
                     nivel={interpretation.level}
@@ -458,7 +475,7 @@ const AssociatedData = () => {
                             marginBottom: 4,
                           }}
                         >
-                          Threshold
+                          Threshold base modelo
                         </div>
                         <div
                           style={{
@@ -561,8 +578,8 @@ const AssociatedData = () => {
                           color: '#6b7280',
                         }}
                       >
-                        Contacto Inmediato: {thresholds.contactoInmediato}%
-                        -100% | Segundo Intento: {thresholds.segundoIntento}%-
+                        Contacto Inmediato: {thresholds.contactoInmediato}%-
+                        100% | Segundo Intento: {thresholds.segundoIntento}%-
                         {thresholds.contactoInmediato - 1}% | No Priorizar: 0%-
                         {thresholds.segundoIntento - 1}%
                       </span>
@@ -591,7 +608,7 @@ const AssociatedData = () => {
                         fontSize: '18px',
                       }}
                     >
-                      Cambiar Umbrales de Contacto
+                      Cambiar Umbrales de Contacto y Modelo
                     </h3>
 
                     <div
@@ -763,6 +780,69 @@ const AssociatedData = () => {
                       </div>
                     </div>
 
+                    {/* Nuevo bloque: umbral de decisión del modelo */}
+                    <div
+                      style={{
+                        marginBottom: '24px',
+                        padding: '16px',
+                        borderRadius: '8px',
+                        border: '2px dashed #3b82f6',
+                        background: '#eff6ff',
+                      }}
+                    >
+                      <h4
+                        style={{
+                          margin: '0 0 8px 0',
+                          color: '#1d4ed8',
+                          fontSize: '14px',
+                          fontWeight: '600',
+                        }}
+                      >
+                        Umbral de decisión del modelo (Se predice "Sí")
+                      </h4>
+                      <p
+                        style={{
+                          margin: '0 0 8px 0',
+                          fontSize: '12px',
+                          color: '#1e40af',
+                        }}
+                      >
+                        Este umbral controla a partir de qué probabilidad el
+                        modelo interpreta la clasificación como "Se predice Sí".
+                      </p>
+                      <div
+                        style={{
+                          display: 'flex',
+                          alignItems: 'center',
+                          gap: '8px',
+                        }}
+                      >
+                        <input
+                          type="number"
+                          min="1"
+                          max="100"
+                          value={modelDecisionThreshold}
+                          onChange={(e) =>
+                            updateModelDecisionThreshold(e.target.value)
+                          }
+                          style={{
+                            padding: '8px',
+                            border: '1px solid #3b82f6',
+                            borderRadius: '4px',
+                            width: '80px',
+                            textAlign: 'center',
+                            fontSize: '14px',
+                            fontWeight: '600',
+                          }}
+                        />
+                        <span
+                          style={{ fontSize: '14px', color: '#1e40af' }}
+                        >
+                          % (por defecto: 75%)
+                        </span>
+                      </div>
+                    </div>
+
                     {/* Botones de acción */}
                     <div
                       style={{
@@ -805,7 +885,7 @@ const AssociatedData = () => {
                   </div>
                 )}
 
-              {/* 🔹 Botón de volver a Análisis de casos (abajo a la derecha) */}
+              {/* 🔹 Botón de volver a Análisis de casos */}
               <div
                 style={{
                   marginTop: 24,
@@ -816,7 +896,7 @@ const AssociatedData = () => {
               >
                 <button
                   type="button"
-                  onClick={() => navigate(-1)} // o navigate('/analisis-de-casos')
+                  onClick={() => navigate(-1)}
                   style={{
                     padding: '8px 16px',
                     borderRadius: 6,

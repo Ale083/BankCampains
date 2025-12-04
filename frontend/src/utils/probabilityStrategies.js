@@ -1,3 +1,5 @@
+// frontend/src/utils/probabilityStrategies.js
+
 /**
  * Patrón Strategy para la interpretación cualitativa de probabilidades
  * Permite definir diferentes estrategias de clasificación según rangos de probabilidad
@@ -24,7 +26,8 @@ class LowProbabilityStrategy {
       level: 'Baja',
       decision: 'Se predice No',
       color: '#10b981',
-      advice: 'Probabilidad baja de aceptación. Considerar estrategia de seguimiento personalizado.',
+      advice:
+        'Probabilidad baja de aceptación. Considerar estrategia de seguimiento personalizado.',
     };
   }
 }
@@ -50,7 +53,8 @@ class MediumProbabilityStrategy {
       level: 'Media',
       decision: 'Se predice moderadamente favorable',
       color: '#f59e0b',
-      advice: 'Probabilidad media. Se recomienda contacto con argumentación personalizada.',
+      advice:
+        'Probabilidad media. Se recomienda contacto con argumentación personalizada.',
     };
   }
 }
@@ -76,7 +80,8 @@ class HighProbabilityStrategy {
       level: 'Alta',
       decision: 'Se predice Sí',
       color: '#ef4444',
-      advice: 'Probabilidad alta de aceptación. Se recomienda contacto inmediato.',
+      advice:
+        'Probabilidad alta de aceptación. Se recomienda contacto inmediato.',
     };
   }
 }
@@ -97,22 +102,63 @@ class ProbabilityInterpreter {
    * @returns {Object} - Estrategia que corresponde
    */
   static getStrategy(probability) {
-    const strategy = this.strategies.find(s => s.matches(probability));
+    const strategy = this.strategies.find((s) => s.matches(probability));
     return strategy || HighProbabilityStrategy;
   }
 
   /**
-   * Interpreta una probabilidad usando la estrategia correspondiente
-   * @param {number} probability - Valor entre 0 y 1
-   * @returns {Object} - Interpretación con nivel, color y recomendación
+   * Interpreta una probabilidad usando la estrategia correspondiente.
+   *
+   * thresholdsOverride (opcional) en formato:
+   * {
+   *   contactoInmediato: 75, // % para "Se predice Sí"
+   *   segundoIntento: 50     // % frontera Media / Baja (si quieres)
+   * }
+   *
+   * Si no se pasa thresholdsOverride, se usan los cortes por defecto (0.5 y 0.75).
    */
-  static interpret(probability) {
-    const strategy = this.getStrategy(probability);
+  static interpret(probability, thresholdsOverride) {
+    const p = Number(probability) || 0;
+
+    // Caso 1: sin umbrales externos -> usar las estrategias tal como estaban
+    if (!thresholdsOverride) {
+      const strategy = this.getStrategy(p);
+      return {
+        level: strategy.getLevel(),
+        color: strategy.getColor(),
+        recommendation: strategy.getRecommendation(p),
+        percentage: Math.round(p * 100),
+      };
+    }
+
+    // Caso 2: con umbrales configurables (en %)
+    const contactoInmediato =
+      thresholdsOverride.contactoInmediato != null
+        ? thresholdsOverride.contactoInmediato
+        : 75;
+    const segundoIntento =
+      thresholdsOverride.segundoIntento != null
+        ? thresholdsOverride.segundoIntento
+        : 50;
+
+    const highCut = contactoInmediato / 100;
+    const mediumCut = segundoIntento / 100;
+
+    let strategy = LowProbabilityStrategy;
+
+    if (p >= highCut) {
+      strategy = HighProbabilityStrategy;
+    } else if (p >= mediumCut) {
+      strategy = MediumProbabilityStrategy;
+    } else {
+      strategy = LowProbabilityStrategy;
+    }
+
     return {
       level: strategy.getLevel(),
       color: strategy.getColor(),
-      recommendation: strategy.getRecommendation(probability),
-      percentage: Math.round(probability * 100),
+      recommendation: strategy.getRecommendation(p),
+      percentage: Math.round(p * 100),
     };
   }
 }
