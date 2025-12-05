@@ -28,7 +28,7 @@ function Register() {
       const response = await register(nombre, email, password, rol);
       
       if (response.ok) {
-        //TODO: no se que pasaría después del registro por ahora
+        navigate(-1);
       }
     } catch (error) {
       console.error('Error durante el registro:', error);
