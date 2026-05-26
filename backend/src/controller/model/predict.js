@@ -1,11 +1,18 @@
 // src/controller/model/predict.js
 const { spawn } = require("child_process");
+const fs = require("fs");
 const path = require("path");
 
 exports.predict = (req, res) => {
   const scriptPath = path.join(__dirname, "..", "..", "scripts", "predict_cli.py");
+  const rootDir = path.join(__dirname, "..", "..", "..");
+  const venvPython =
+    process.platform === "win32"
+      ? path.join(rootDir, ".venv", "Scripts", "python.exe")
+      : path.join(rootDir, ".venv", "bin", "python");
+  const pythonCommand = fs.existsSync(venvPython) ? venvPython : "python";
 
-  const py = spawn("python", [scriptPath]); 
+  const py = spawn(pythonCommand, [scriptPath]); 
 
   py.stdin.write(JSON.stringify(req.body));
   py.stdin.end();

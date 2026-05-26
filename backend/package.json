@@ -5,7 +5,7 @@
   "main": "index.js",
   "scripts": {
     "ensure-indexes": "node ./src/scripts/ensureIndexes.js",
-    "postinstall": "python -m pip install -r requirements.txt",
+    "postinstall": "node ./src/scripts/setupPythonEnv.js",
     "test": "echo \"Error: no test specified\" && exit 1",
     "start": "nodemon src/index.js"
   },
