@@ -44,7 +44,7 @@ async function start() {
     await mongoose.connect(MONGO_URI);
     console.log('Conectado a la DB');
 
-    const port = process.env.PORT || 3001;
+    const port = process.env.PORT || 3000;
     app.listen(port, () =>
       console.log(`API corriendo en :${port} ${MONGO_URI}`)
     );
