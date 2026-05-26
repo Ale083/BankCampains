@@ -1,4 +1,4 @@
-const URL_BASE = 'https://bankcampains-backend.onrender.com/';
+const URL_BASE = 'https://bankcampains.onrender.com/';
 
 export async function postJSON(path, body) {
   const r = await fetch(`${URL_BASE}${path}`, {

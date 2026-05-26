@@ -1,4 +1,4 @@
-const URL_BASE = "https://bankcampains-backend.onrender.com/";
+const URL_BASE = "https://bankcampains.onrender.com";
 
 const withQS = (path, qs) => (qs && qs.length ? `${path}?${qs}` : path);
 
