@@ -1,4 +1,4 @@
-const API_BASE_URL = 'http://localhost:3001'; 
+const API_BASE_URL = 'https://bankcampains.onrender.com:3001'; 
 const PREDICT_URL = `${API_BASE_URL}/api/model/predict`;
 
 export async function predictProbability(clientData) {
