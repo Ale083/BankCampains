@@ -1,4 +1,4 @@
-const URL_BASE = process.env.URL_BASE || "https://bankcampains.onrender.com:3000";
+const URL_BASE = process.env.URL_BASE || "https://bankcampains.onrender.com";
 
 export async function login(email, password) {
   try {

@@ -47,5 +47,5 @@
       "last 1 safari version"
     ]
   },
-  "proxy": "http://bankcampains.onrender.com:3000"
+  "proxy": "https://bankcampains.onrender.com"
 }

@@ -53,7 +53,7 @@ En el directorio `frontend/` se pueden ejecutar los siguientes comandos si está
 
 ### `npm start`
 Ejecuta la aplicación en modo desarrollo.
-Abra `http://localhost:3000` en el navegador.
+Abra `http://localhost` en el navegador.
 La página recargará cuando haya cambios y se verán errores de lint en la consola si aplican.
 
 ### `npm test`
@@ -88,7 +88,7 @@ Si el backend requiere configuración, crear un archivo `.env` en `backend/` con
 ```
 PORT=5000
 MONGO_URI=mongodb://localhost:27017/bankcampains
-CORS_ORIGIN=http://localhost:3000
+CORS_ORIGIN=http://localhost
 ```
 
 - `PORT` define el puerto del servidor backend.
