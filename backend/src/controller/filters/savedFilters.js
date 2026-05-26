@@ -1,7 +1,7 @@
 const express = require('express');
 const router = express.Router();
 const mongoose = require('mongoose');
-const SavedFilter = require('../../model/SavedFilter');
+const SavedFilter = require('../../model/savedFilter');
 
 const oid = (id) => mongoose.Types.ObjectId.isValid(id) ? new mongoose.Types.ObjectId(id) : null;
 const getUserId = (req) => oid(req.headers['x-user-id'] || req.query.userId || req.body?.userId);
