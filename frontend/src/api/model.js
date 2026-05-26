@@ -1,8 +1,7 @@
-const API_BASE_URL = 'https://bankcampains.onrender.com'; 
-const PREDICT_URL = `${API_BASE_URL}/api/model/predict`;
+import { apiFetch } from './client';
 
 export async function predictProbability(clientData) {
-  const res = await fetch(PREDICT_URL, {
+  const res = await apiFetch('/api/model/predict', {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify(clientData),

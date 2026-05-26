@@ -1,7 +1,7 @@
-const URL_BASE = 'https://bankcampains.onrender.com/';
+import { apiFetch } from './client';
 
 export async function postJSON(path, body) {
-  const r = await fetch(`${URL_BASE}${path}`, {
+  const r = await apiFetch(path, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify(body || {})

@@ -1,4 +1,4 @@
-const URL_BASE = "https://bankcampains.onrender.com";
+import { apiFetch } from '../api/client';
 
 const withQS = (path, qs) => (qs && qs.length ? `${path}?${qs}` : path);
 
@@ -21,29 +21,29 @@ export async function fetchKPIs(filtersQS = "") {
 }
 
 async function tasaConversion(filtersQS) {
-  return fetch(withQS(`${URL_BASE}/kpis/conversion-rate`, filtersQS)).then(r => r.json());
+  return apiFetch(withQS('/kpis/conversion-rate', filtersQS)).then(r => r.json());
 }
 
 async function avgDuration(filtersQS) {
-  return fetch(withQS(`${URL_BASE}/kpis/avg-duration`, filtersQS)).then(r => r.json());
+  return apiFetch(withQS('/kpis/avg-duration', filtersQS)).then(r => r.json());
 }
 
 async function contactosPorMes(filtersQS) {
-  return fetch(withQS(`${URL_BASE}/kpis/contacts-by-month`, filtersQS)).then(r => r.json());
+  return apiFetch(withQS('/kpis/contacts-by-month', filtersQS)).then(r => r.json());
 }
 
 async function tasaExitoPorCanal(filtersQS) {
-  return fetch(withQS(`${URL_BASE}/kpis/channel-success`, filtersQS)).then(r => r.json());
+  return apiFetch(withQS('/kpis/channel-success', filtersQS)).then(r => r.json());
 }
 
 async function conversionPorEdad(filtersQS) {
-  return fetch(withQS(`${URL_BASE}/kpis/age-conversion`, filtersQS)).then(r => r.json());
+  return apiFetch(withQS('/kpis/age-conversion', filtersQS)).then(r => r.json());
 }
 
 async function impactoHistorialPrevio(filtersQS) {
-  return fetch(withQS(`${URL_BASE}/kpis/poutcome-stacked`, filtersQS)).then(r => r.json());
+  return apiFetch(withQS('/kpis/poutcome-stacked', filtersQS)).then(r => r.json());
 }
 
 async function indiceEficienciaPorCampaña(filtersQS) {
-  return fetch(withQS(`${URL_BASE}/kpis/efficiency-lines`, filtersQS)).then(r => r.json());
+  return apiFetch(withQS('/kpis/efficiency-lines', filtersQS)).then(r => r.json());
 }

@@ -6,6 +6,7 @@ import { useNavigate } from 'react-router-dom';
 import { useSessionData } from '../store/useSessionData';
 import { useFilters } from '../store/useFilters';
 import DataTable from '../components/DataTable';
+import { apiFetch } from '../api/client';
 
 const requisitos = [
   'Formato CSV',
@@ -90,7 +91,7 @@ export default function CsvUpload({ onNext }) {
     formData.append('csvFile', fileObj);
 
     try {
-      const res = await fetch('/api/uploads/upload-csv', { method: 'POST', body: formData });
+      const res = await apiFetch('/api/uploads/upload-csv', { method: 'POST', body: formData });
       setProgress(80);
       const data = await res.json();
 
@@ -115,7 +116,7 @@ export default function CsvUpload({ onNext }) {
 
         
         try {
-          const contactsRes = await fetch('/api/contacts/list');
+          const contactsRes = await apiFetch('/api/contacts/list');
           const contactsData = await contactsRes.json();
           if (contactsData.ok && contactsData.data) {
             setData({ rows: contactsData.data, columns: summary.columns || columns });

@@ -1,8 +1,9 @@
-const URL_BASE = process.env.URL_BASE || "https://bankcampains.onrender.com";
+import { apiFetch } from '../api/client';
 
 export async function login(email, password) {
   try {
-    return await fetch(`${URL_BASE}/api/auth/login?email=${email}&password=${password}`).then(r => r.json());
+    const params = new URLSearchParams({ email, password });
+    return await apiFetch(`/api/auth/login?${params}`).then(r => r.json());
   } catch (error) {
     console.error("Error logging in: ", error);
     throw error;
@@ -11,7 +12,7 @@ export async function login(email, password) {
 
 export async function register(nombre, email, password, rol) {
   try {
-    return await fetch(`${URL_BASE}/api/auth/register`, {
+    return await apiFetch('/api/auth/register', {
       method: 'POST',
       headers: {'Content-Type': 'application/json'},
       body: JSON.stringify({ nombre, email, password, rol }),

@@ -3,6 +3,7 @@ import Header from '../components/Header';
 import './styles.css';
 import { useNavigate } from 'react-router-dom';
 import AccessFacade from '../auth/AccessFacade';
+import { apiFetch } from '../api/client';
 
 function buildQuery(q) {
   const s = new URLSearchParams();
@@ -41,7 +42,7 @@ export default function Historial() {
   const load = useCallback(async () => {
     try {
       const q = buildQuery({ ...rangeToDates });
-      const r = await fetch('/api/history' + (q ? `?${q}` : ''));
+      const r = await apiFetch('/api/history' + (q ? `?${q}` : ''));
       if (!r.ok) throw new Error(`HTTP error! status: ${r.status}`);
       const json = await r.json();
       

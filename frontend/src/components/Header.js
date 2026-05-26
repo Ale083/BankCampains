@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { NavLink, useLocation, useNavigate } from 'react-router-dom';
+import { apiFetch } from '../api/client';
 
 const Header = ({ title = "Carga de datos", showNavbar = true }) => {
   const [hasValidData, setHasValidData] = useState(false);
@@ -18,7 +19,7 @@ const Header = ({ title = "Carga de datos", showNavbar = true }) => {
     const checkDataAvailability = async () => {
       try {
        
-        const contactsResponse = await fetch('/api/contacts/exists');
+        const contactsResponse = await apiFetch('/api/contacts/exists');
         const contactsData = await contactsResponse.json();
         setHasValidData(!!contactsData.exists);
 
@@ -38,7 +39,7 @@ const Header = ({ title = "Carga de datos", showNavbar = true }) => {
 
         
         try {
-          const historyResponse = await fetch('/api/history');
+          const historyResponse = await apiFetch('/api/history');
           const historyData = await historyResponse.json();
           setHasHistoryData(!!(historyData.items && historyData.items.length > 0));
         } catch {}
@@ -268,7 +269,7 @@ const Header = ({ title = "Carga de datos", showNavbar = true }) => {
                   navigate('/uploads');
 
                   
-                  fetch('/api/contacts/clear', { method: 'DELETE' })
+                  apiFetch('/api/contacts/clear', { method: 'DELETE' })
                     .catch(err => console.error('Error clearing data:', err));
                 }
               }}

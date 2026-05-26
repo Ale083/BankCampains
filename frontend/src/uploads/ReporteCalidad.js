@@ -7,6 +7,7 @@ import { Link } from 'react-router-dom';
 import DataTable from '../components/DataTable';  
 import { toQueryString } from '../api/btw';      
 import { useFilters } from '../store/useFilters';   
+import { apiFetch } from '../api/client';
 
 
 export default function ReporteCalidad() {
@@ -147,7 +148,7 @@ export default function ReporteCalidad() {
         <div className="report-footer">
           <button className="upload-button" onClick={async () => {
             try {
-              await fetch('/api/contacts/clear', { method: 'DELETE' });
+              await apiFetch('/api/contacts/clear', { method: 'DELETE' });
               localStorage.setItem('dataCleared', '1');
             } catch (error) {
               console.error('Error clearing data:', error);
