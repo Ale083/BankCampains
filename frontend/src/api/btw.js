@@ -1,4 +1,4 @@
-const URL_BASE = process.env.URL_BASE || 'http://localhost:3001';
+const URL_BASE = 'https://bankcampains-backend.onrender.com/';
 
 export async function postJSON(path, body) {
   const r = await fetch(`${URL_BASE}${path}`, {

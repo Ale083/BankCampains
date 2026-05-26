@@ -1,0 +1,174 @@
+/* AssociatedData.css */
+
+.associated-data-container {
+  min-height: 100vh;
+  background: #f9fafb;
+  padding: 24px 16px;
+}
+
+.probability-card {
+  background: #fff;
+  border-radius: 12px;
+  padding: 32px 24px;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+}
+
+.probability-card-title {
+  font-size: 18px;
+  font-weight: 600;
+  color: #1f2937;
+  margin-bottom: 24px;
+  text-align: center;
+}
+
+.probability-display-wrapper {
+  margin-top: 16px;
+  margin-bottom: 16px;
+}
+
+.risk-bar {
+  margin-top: 32px;
+  width: 100%;
+  display: flex;
+  gap: 8px;
+  justify-content: center;
+}
+
+.risk-item {
+  flex: 1;
+  max-width: 80px;
+  text-align: center;
+}
+
+.risk-bar-segment {
+  height: 8px;
+  border-radius: 4px;
+  margin-bottom: 8px;
+  transition: all 0.3s ease;
+}
+
+.risk-bar-label {
+  font-size: 12px;
+  font-weight: 400;
+  color: #9ca3af;
+  transition: all 0.3s ease;
+}
+
+.risk-bar-label.active {
+  font-weight: 600;
+}
+
+.info-box {
+  margin-top: 32px;
+  padding: 16px 24px;
+  background: #f3f4f6;
+  border-radius: 8px;
+  width: 100%;
+}
+
+.info-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 16px;
+  font-size: 14px;
+}
+
+.info-item {
+  display: flex;
+  flex-direction: column;
+}
+
+.info-label {
+  color: #6b7280;
+  margin-bottom: 4px;
+  font-size: 12px;
+}
+
+.info-value {
+  font-weight: 600;
+  color: #1f2937;
+}
+
+.recalculate-btn {
+  margin-top: 24px;
+  padding: 10px 20px;
+  background: #4f75e2;
+  color: #fff;
+  border: none;
+  border-radius: 6px;
+  font-size: 14px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.recalculate-btn:hover:not(:disabled) {
+  background: #3d5fc1;
+  box-shadow: 0 2px 8px rgba(79, 117, 226, 0.3);
+}
+
+.recalculate-btn:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+.justification-card {
+  background: #fff;
+  border-radius: 12px;
+  padding: 24px;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+  margin-top: 24px;
+}
+
+.justification-title {
+  font-size: 16px;
+  font-weight: 600;
+  color: #1f2937;
+  margin-bottom: 16px;
+}
+
+.justification-content {
+  font-size: 14px;
+  color: #6b7280;
+  line-height: 1.6;
+}
+
+.justification-content p {
+  margin: 0 0 12px 0;
+}
+
+.justification-content p:first-child {
+  margin-top: 0;
+}
+
+.error-box {
+  background: #fee2e2;
+  border: 1px solid #fecaca;
+  border-radius: 8px;
+  padding: 16px;
+  color: #991b1b;
+  margin-bottom: 24px;
+}
+
+.loading-state {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  min-height: 400px;
+  font-size: 16px;
+  color: #6b7280;
+}
+
+/* Responsive Design */
+@media (max-width: 768px) {
+  .info-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .probability-card {
+    padding: 24px 16px;
+  }
+}

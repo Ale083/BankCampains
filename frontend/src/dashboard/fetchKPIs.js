@@ -1,4 +1,4 @@
-const URL_BASE = process.env.URL_BASE || "http://localhost:3001";
+const URL_BASE = "https://bankcampains-backend.onrender.com/";
 
 const withQS = (path, qs) => (qs && qs.length ? `${path}?${qs}` : path);
 

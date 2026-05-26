@@ -2,9 +2,10 @@ import React, { useEffect, useMemo, useState, useRef } from 'react';
 import Header from '../components/Header';
 import { listPresets, mergeFiltersAND, deletePreset } from '../filters/utils';
 import { useSessionData } from '../store/useSessionData';
-import { Link } from 'react-router-dom';
+import { Link, useNavigate } from 'react-router-dom';
 import { listSavedFilters, deleteSavedFilter } from '../api/savedFilters';
 import { exportRowsToCSV, exportRowsToXLSX } from '../utils/exporters';
+import AccessFacade from '../auth/AccessFacade';
 
 function Chip({ label, active, onToggle, onDelete }) {
   return (
@@ -77,6 +78,14 @@ function toNumberOrNull(v) {
 }
 
 export default function Explorer() {
+  const navigate = useNavigate();
+  useEffect(() => {
+    if(!AccessFacade.puedeConsultar()){
+      alert("Usuario sin permisos para ver el explorador");
+      navigate(-1);
+    }
+  }, []);
+  
   const [presets, setPresets] = useState(() => listPresets());
   const [active, setActive] = useState({});
   const { rows, columns } = useSessionData();

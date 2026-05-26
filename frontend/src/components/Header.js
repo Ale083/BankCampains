@@ -7,6 +7,7 @@ const Header = ({ title = "Carga de datos", showNavbar = true }) => {
   const [isLoading, setIsLoading] = useState(true);
   const [disabledByClear, setDisabledByClear] = useState(() => !!localStorage.getItem('dataCleared'));
   const [forceCheck, setForceCheck] = useState(0);
+  const [showUserMenu, setShowUserMenu] = useState(false);
   const location = useLocation();
   const navigate = useNavigate();
 
@@ -74,6 +75,17 @@ const Header = ({ title = "Carga de datos", showNavbar = true }) => {
   }, []);
 
  
+  const handleLogout = () => {
+    localStorage.removeItem('session');
+    setShowUserMenu(false);
+    navigate('/login');
+  };
+
+  const handleRegister = () => {
+    setShowUserMenu(false);
+    navigate('/register');
+  };
+
   const initials = (() => {
     try {
       const s = JSON.parse(localStorage.getItem('session'));
@@ -95,18 +107,73 @@ const Header = ({ title = "Carga de datos", showNavbar = true }) => {
         background: '#fff',
         position: 'relative'
       }}>
-        <div style={{
-          height: 36,
-          width: 36,
-          borderRadius: '50%',
-          display: 'flex',
-          alignItems: 'center',
-          justifyContent: 'center',
-          background: '#dbeafe',
-          color: '#1f2937',
-          fontWeight: 700
-        }}>
-          {initials}
+        <div style={{ position: 'relative' }}>
+          <div style={{
+              height: 36,
+              width: 36,
+              borderRadius: '50%',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              background: '#dbeafe',
+              color: '#1f2937',
+              fontWeight: 700
+            }}
+            onClick={() => setShowUserMenu(prev => !prev)}
+          >
+            {initials}
+          </div>
+        
+         {showUserMenu && (  
+            <div
+              style={{
+                position: 'absolute',
+                top: 44,
+                left: 0,
+                background: '#ffffff',
+                borderRadius: 8,
+                boxShadow: '0 10px 15px -3px rgba(0,0,0,0.1), 0 4px 6px -4px rgba(0,0,0,0.1)',
+                padding: '8px 0',
+                zIndex: 50,
+                minWidth: 190
+              }}
+            >
+              <button
+                type="button"
+                onClick={handleLogout}
+                style={{
+                  width: '100%',
+                  padding: '8px 12px',
+                  border: 'none',
+                  background: 'transparent',
+                  textAlign: 'left',
+                  fontSize: 14,
+                  cursor: 'pointer',
+                  outline: 'none',
+                  color: '#111827'
+                }}
+              >
+                Cerrar sesión
+              </button>
+              <button
+                type="button"
+                onClick={handleRegister}
+                style={{
+                  width: '100%',
+                  padding: '8px 12px',
+                  border: 'none',
+                  background: 'transparent',
+                  textAlign: 'left',
+                  fontSize: 14,
+                  cursor: 'pointer',
+                  outline: 'none',
+                  color: '#111827'
+                }}
+              >
+                Registrar nuevo usuario
+              </button>
+            </div>
+          )}
         </div>
 
         <h1 style={{
@@ -155,8 +222,12 @@ const Header = ({ title = "Carga de datos", showNavbar = true }) => {
             { to: '/', label: 'Carga de Datos', enabled: true, requirement: '', clearData: true },
             { to: '/dashboardKPIs', label: 'Dashboard', enabled: hasValidData && !disabledByClear, requirement: 'datos válidos' },
             { to: '/explorador', label: 'Explorador', enabled: hasValidData && !disabledByClear, requirement: 'datos válidos' },
+            //{ to: '/datos-asociados', label: 'Datos Asociados', enabled: true, requirement: 'datos válidos' },
+            { to: '/analisis-casos', label: 'Análisis de casos', enabled: true, requirement: '' },
             { to: '/historial', label: 'Historial', enabled: true, requirement: '' },
           ].map(link => (
+
+
             <NavLink
               key={link.to}
               to={link.enabled ? link.to : '#'}
@@ -194,7 +265,7 @@ const Header = ({ title = "Carga de datos", showNavbar = true }) => {
                   setHasValidData(false);
                   setDisabledByClear(true);
                   localStorage.setItem('dataCleared', '1');
-                  navigate('/');
+                  navigate('/uploads');
 
                   
                   fetch('/api/contacts/clear', { method: 'DELETE' })
